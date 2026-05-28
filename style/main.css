@@ -1,0 +1,108 @@
+/* ============================================================
+   KG5IEF Antenna‑Workbench
+   HF + Portable Antenna Engineering Suite
+   Main Stylesheet
+   ============================================================ */
+
+/* Global ---------------------------------------------------- */
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    color: #222;
+}
+
+h1, h2, h3 {
+    margin: 0;
+}
+
+/* Header ---------------------------------------------------- */
+
+header {
+    background: #1e3a5f;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 4px solid #0f2238;
+}
+
+header h1 {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+header h2 {
+    font-size: 18px;
+    font-weight: normal;
+    opacity: 0.9;
+    margin-top: 6px;
+}
+
+/* Layout ---------------------------------------------------- */
+
+.container {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    height: calc(100vh - 100px);
+}
+
+/* Navigation Panel ------------------------------------------ */
+
+nav {
+    background: #ffffff;
+    border-right: 2px solid #ddd;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+nav h3 {
+    font-size: 18px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 6px;
+}
+
+nav button {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0;
+    background: #1e3a5f;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+nav button:hover {
+    background: #274b78;
+}
+
+/* Main Content ---------------------------------------------- */
+
+#content {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* Sidebar ---------------------------------------------------- */
+
+#sidebar {
+    background: #ffffff;
+    border-left: 2px solid #ddd;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+#sidebar h3 {
+    margin-top: 0;
+}
+
+/* Footer ----------------------------------------------------- */
+
+footer {
+    text-align: center;
+    padding: 10px;
+    background: #ddd;
+    font-size: 12px;
+}
