@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <title>KG5IEF Antenna‑Workbench</title>
 
-    <!-- Blueprint theme -->
+    <!-- Correct paths -->
     <link rel="stylesheet" href="style/theme.css">
-
-    <!-- Main layout -->
     <link rel="stylesheet" href="style/style.css">
 </head>
 
@@ -40,22 +38,15 @@
 
 </main>
 
-<!-- CORE APP -->
+<!-- Correct JS path -->
 <script type="module" src="js/app.js"></script>
 
-<!-- LOAD SIDEBAR -->
+<!-- Load sidebar -->
 <script>
     fetch("sidebar.html")
         .then(r => r.text())
         .then(html => {
             document.getElementById("sidebar-buttons").innerHTML = html;
-        })
-        .catch(() => {
-            document.getElementById("sidebar-buttons").innerHTML = `
-                <button onclick="loadModule('vertical-designer')">Vertical Designer</button>
-                <button onclick="loadModule('feedline')">Feedline & CMC Engine</button>
-                <button onclick="loadModule('posters')">Posters</button>
-            `;
         });
 </script>
 
