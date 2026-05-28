@@ -1,10 +1,34 @@
 /* ============================================================
    KG5IEF Antenna‑Workbench
    HF + Portable Antenna Engineering Suite
-   Core Application Controller
+   Core Application Controller (FULL MODULE LOADER)
    ============================================================ */
 
 console.log("KG5IEF Antenna‑Workbench: app.js loaded");
+
+/* ------------------------------------------------------------
+   IMPORT ALL MODULES
+   ------------------------------------------------------------ */
+
+import { verticalDesignerUI } from "./modules/vertical-designer.js";
+import { nvisLabUI } from "./modules/nvis-lab.js";
+import { dxLabUI } from "./modules/dx-lab.js";
+import { feedlineUI } from "./modules/feedline.js";
+import { postersUI } from "./modules/posters.js";
+
+import { couplingSimulatorUI } from "./modules/coupling-simulator.js";
+import { harmonicExplorerUI } from "./modules/harmonic-explorer.js";
+import { systemGainUI } from "./modules/system-gain.js";
+import { phasedArrayUI } from "./modules/phased-array.js";
+import { groundLossMapUI } from "./modules/ground-loss-map.js";
+import { mufLufExplorerUI } from "./modules/muf-luf-explorer.js";
+import { noiseSnrLabUI } from "./modules/noise-snr-lab.js";
+import { linkBudgetUI } from "./modules/link-budget.js";
+import { powerHandlingUI } from "./modules/power-handling.js";
+import { failureModeUI } from "./modules/failure-mode.js";
+import { bandOpeningUI } from "./modules/band-opening.js";
+import { antennaOptimizerAIUI } from "./modules/antenna-optimizer-ai.js";
+import { workbenchExporterUI } from "./modules/workbench-exporter.js";
 
 /* ------------------------------------------------------------
    DOM references
@@ -14,23 +38,52 @@ const contentPanel = document.getElementById("content");
 const sidebarPanel = document.getElementById("sidebar");
 
 /* ------------------------------------------------------------
-   Module Loader
+   MODULE REGISTRY
+   ------------------------------------------------------------ */
+
+const modules = {
+    "vertical-designer": verticalDesignerUI,
+    "nvis-lab": nvisLabUI,
+    "dx-lab": dxLabUI,
+    "feedline": feedlineUI,
+    "posters": postersUI,
+
+    "coupling-simulator": couplingSimulatorUI,
+    "harmonic-explorer": harmonicExplorerUI,
+    "system-gain": systemGainUI,
+    "phased-array": phasedArrayUI,
+    "ground-loss-map": groundLossMapUI,
+    "muf-luf-explorer": mufLufExplorerUI,
+    "noise-snr-lab": noiseSnrLabUI,
+    "link-budget": linkBudgetUI,
+    "power-handling": powerHandlingUI,
+    "failure-mode": failureModeUI,
+    "band-opening": bandOpeningUI,
+    "antenna-optimizer-ai": antennaOptimizerAIUI,
+    "workbench-exporter": workbenchExporterUI
+};
+
+/* ------------------------------------------------------------
+   MODULE LOADER
    ------------------------------------------------------------ */
 
 function loadModule(moduleName) {
-    contentPanel.innerHTML = `
-        <h2>${moduleName}</h2>
-        <p>Loading module...</p>
-    `;
+    const mod = modules[moduleName];
 
+    if (!mod) {
+        contentPanel.innerHTML = `<h2>${moduleName}</h2><p>Module not found.</p>`;
+        sidebarPanel.innerHTML = `<h3>Error</h3><p>No module registered under this name.</p>`;
+        return;
+    }
+
+    // Load UI
+    contentPanel.innerHTML = mod();
+
+    // Reset sidebar
     sidebarPanel.innerHTML = `
         <h3>${moduleName} — Info</h3>
-        <p>This panel will display engineering notes, calculations, and module‑specific data.</p>
+        <p>Module loaded successfully.</p>
     `;
-
-    // Future: dynamic module imports
-    // Example:
-    // import(`/js/modules/${moduleName}.js`).then(...)
 }
 
 /* ------------------------------------------------------------
@@ -50,7 +103,7 @@ function updateContent(html) {
 }
 
 /* ------------------------------------------------------------
-   Poster Renderer Hook (future)
+   Poster Renderer Hook
    ------------------------------------------------------------ */
 
 function renderPoster(svgString) {
