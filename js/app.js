@@ -30,6 +30,8 @@ import { bandOpeningUI } from "./modules/band-opening.js";
 import { antennaOptimizerAIUI } from "./modules/antenna-optimizer-ai.js";
 import { workbenchExporterUI } from "./modules/workbench-exporter.js";
 
+import { diagnosticModuleUI } from "./modules/diagnostic-module.js";
+
 /* ------------------------------------------------------------
    DOM references
    ------------------------------------------------------------ */
@@ -59,61 +61,87 @@ const modules = {
     "power-handling": powerHandlingUI,
     "failure-mode": failureModeUI,
     "band-opening": bandOpeningUI,
+
     "antenna-optimizer-ai": antennaOptimizerAIUI,
-    "workbench-exporter": workbenchExporterUI
+    "workbench-exporter": workbenchExporterUI,
+
+    "diagnostic-module": diagnosticModuleUI
 };
 
+// Expose registry globally for diagnostics
+window.modules = modules;
+
 /* ------------------------------------------------------------
-   MODULE LOADER
+   MODULE LOADER (GLOBAL)
    ------------------------------------------------------------ */
 
-function loadModule(moduleName) {
+window.loadModule = function (moduleName) {
     const mod = modules[moduleName];
 
     if (!mod) {
-        contentPanel.innerHTML = `<h2>${moduleName}</h2><p>Module not found.</p>`;
-        sidebarPanel.innerHTML = `<h3>Error</h3><p>No module registered under this name.</p>`;
+        contentPanel.innerHTML = `
+            <h2>${moduleName}</h2>
+            <div class="card"><p>Module not found.</p></div>
+        `;
+        sidebarPanel.innerHTML = `
+            <h3>Error</h3>
+            <p>No module registered under this name.</p>
+        `;
         return;
     }
 
-    // Load UI
-    contentPanel.innerHTML = mod();
+    try {
+        const html = mod();
+        contentPanel.innerHTML = html;
 
-    // Reset sidebar
-    sidebarPanel.innerHTML = `
-        <h3>${moduleName} — Info</h3>
-        <p>Module loaded successfully.</p>
-    `;
-}
+        sidebarPanel.innerHTML = `
+            <h3>${moduleName} — Info</h3>
+            <p>Module loaded successfully.</p>
+        `;
+    } catch (err) {
+        console.error("Module load error:", moduleName, err);
+
+        contentPanel.innerHTML = `
+            <h2>${moduleName}</h2>
+            <div class="card">
+                <p>Error rendering module UI.</p>
+                <pre>${err.message}</pre>
+            </div>
+        `;
+
+        sidebarPanel.innerHTML = `
+            <h3>${moduleName} — Error</h3>
+            <p>Check console for details.</p>
+        `;
+    }
+};
 
 /* ------------------------------------------------------------
    Sidebar Helper
    ------------------------------------------------------------ */
 
-function updateSidebar(html) {
+window.updateSidebar = function (html) {
     sidebarPanel.innerHTML = html;
-}
+};
 
 /* ------------------------------------------------------------
    Content Helper
    ------------------------------------------------------------ */
 
-function updateContent(html) {
+window.updateContent = function (html) {
     contentPanel.innerHTML = html;
-}
+};
 
 /* ------------------------------------------------------------
    Poster Renderer Hook
    ------------------------------------------------------------ */
 
-function renderPoster(svgString) {
-    updateContent(`
+window.renderPoster = function (svgString) {
+    contentPanel.innerHTML = `
         <h2>Poster Preview</h2>
-        <div class="card">
-            ${svgString}
-        </div>
-    `);
-}
+        <div class="card">${svgString}</div>
+    `;
+};
 
 /* ------------------------------------------------------------
    Initialization
