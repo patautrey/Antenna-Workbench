@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>KG5IEF Antenna‑Workbench</title>
-    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Blueprint theme -->
+    <link rel="stylesheet" href="style/theme.css">
+
+    <!-- Main layout -->
+    <link rel="stylesheet" href="style/style.css">
 </head>
+
 <body>
 
 <header>
@@ -14,21 +20,19 @@
 
 <main class="layout">
 
-    <!-- Left: Modules sidebar -->
+    <!-- LEFT SIDEBAR -->
     <aside id="modules" class="sidebar-left">
         <h3>Modules</h3>
-        <div id="sidebar-buttons">
-            <!-- Filled by sidebar.html or fallback below -->
-        </div>
+        <div id="sidebar-buttons"></div>
     </aside>
 
-    <!-- Center: Main content -->
+    <!-- MAIN CONTENT -->
     <section id="content" class="content-main">
         <h2>Welcome</h2>
         <p>Select a module from the left to begin.</p>
     </section>
 
-    <!-- Right: Info panel -->
+    <!-- RIGHT INFO PANEL -->
     <aside id="sidebar" class="sidebar-right">
         <h3>Info Panel</h3>
         <p>This panel will display module-specific notes, tips, and engineering data.</p>
@@ -36,24 +40,15 @@
 
 </main>
 
-<!-- Core app controller -->
+<!-- CORE APP -->
 <script type="module" src="js/app.js"></script>
 
-<!-- Sidebar loader (optional external sidebar.html) -->
+<!-- LOAD SIDEBAR -->
 <script>
     fetch("sidebar.html")
-        .then(r => r.ok ? r.text() : "")
+        .then(r => r.text())
         .then(html => {
-            if (html.trim()) {
-                document.getElementById("sidebar-buttons").innerHTML = html;
-            } else {
-                // Fallback if sidebar.html not found
-                document.getElementById("sidebar-buttons").innerHTML = `
-                    <button onclick="loadModule('vertical-designer')">Vertical Designer</button>
-                    <button onclick="loadModule('feedline')">Feedline & CMC Engine</button>
-                    <button onclick="loadModule('posters')">Posters</button>
-                `;
-            }
+            document.getElementById("sidebar-buttons").innerHTML = html;
         })
         .catch(() => {
             document.getElementById("sidebar-buttons").innerHTML = `
