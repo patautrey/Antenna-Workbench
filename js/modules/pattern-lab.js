@@ -1,10 +1,10 @@
 /* ============================================================
    KG5IEF Antenna‑Workbench
    HF + Portable Antenna Engineering Suite
-   Module: Radiation Pattern Lab
+   Module: Antenna Pattern Lab
    ============================================================ */
 
-import { svgWrapper, svgTitle, svgLabel } from "../core/poster-engine.js";
+import { svgWrapper, svgTitle, svgLine, svgLabel, svgCircle } from "../core/poster-engine.js";
 
 console.log("pattern-lab.js loaded");
 
@@ -14,18 +14,22 @@ console.log("pattern-lab.js loaded");
 
 export function patternLabUI() {
     return `
-        <h2>Radiation Pattern Lab</h2>
+        <h2>Antenna Pattern Lab</h2>
 
         <div class="card">
+            <label>Frequency (MHz):</label><br>
+            <input id="pat_freq" type="number" value="14.2" step="0.1"><br><br>
+
             <label>Antenna Type:</label><br>
             <select id="pat_type">
                 <option value="dipole">Dipole</option>
                 <option value="vertical">Vertical</option>
+                <option value="loop">Loop</option>
                 <option value="yagi">Yagi (3‑element)</option>
             </select><br><br>
 
-            <label>Elevation Angle (degrees):</label><br>
-            <input id="pat_el" type="number" value="30" step="1"><br><br>
+            <label>Height (meters):</label><br>
+            <input id="pat_height" type="number" value="10" step="0.5"><br><br>
 
             <button class="btn-primary" onclick="runPatternLab()">Analyze</button>
         </div>
@@ -39,65 +43,49 @@ export function patternLabUI() {
    ------------------------------------------------------------ */
 
 /**
- * Dipole pattern:
- * E(θ) = sin(θ)
+ * Simple elevation pattern approximation:
+ * Dipole: sin(θ)
+ * Vertical: cos(θ)
+ * Loop: sin²(θ)
+ * Yagi: sin(θ) * (1 + 0.6*cos(θ))
  */
-function dipolePattern(theta) {
-    return Math.abs(Math.sin(theta));
+function elevationPattern(type, theta) {
+    const t = theta * Math.PI / 180;
+
+    if (type === "dipole") return Math.abs(Math.sin(t));
+    if (type === "vertical") return Math.abs(Math.cos(t));
+    if (type === "loop") return Math.pow(Math.sin(t), 2);
+    if (type === "yagi") return Math.abs(Math.sin(t) * (1 + 0.6 * Math.cos(t)));
+
+    return 0;
 }
 
 /**
- * Vertical pattern:
- * E(θ) = cos(θ)
+ * Height effect:
+ * Lower height → higher takeoff angle
+ * TOA ≈ 90 - (height / λ) * 20
  */
-function verticalPattern(theta) {
-    return Math.abs(Math.cos(theta));
-}
-
-/**
- * Yagi pattern (very simplified):
- * E(θ) = sin(θ) * (1 + 0.8*cos(θ))
- */
-function yagiPattern(theta) {
-    return Math.abs(Math.sin(theta) * (1 + 0.8 * Math.cos(theta)));
+function takeoffAngle(freqMhz, heightMeters) {
+    const lambda = 300 / freqMhz;
+    return Math.max(5, 90 - (heightMeters / lambda) * 20);
 }
 
 /* ------------------------------------------------------------
-   Poster Generator (Polar Plot)
+   Poster Generator
    ------------------------------------------------------------ */
 
 function patternPoster(type) {
-    const centerX = 400;
-    const centerY = 300;
-    const radius = 200;
-
-    let points = "";
-
-    for (let deg = 0; deg < 360; deg++) {
-        const theta = (deg * Math.PI) / 180;
-
-        let mag = 0;
-        if (type === "dipole") mag = dipolePattern(theta);
-        if (type === "vertical") mag = verticalPattern(theta);
-        if (type === "yagi") mag = yagiPattern(theta);
-
-        const r = radius * mag;
-        const x = centerX + r * Math.cos(theta);
-        const y = centerY + r * Math.sin(theta);
-
-        points += `${x},${y} `;
-    }
-
     const inner = `
-        ${svgTitle("Radiation Pattern (" + type + ")")}
-        <polyline points="${points}" stroke="#1e3a5f" stroke-width="3" fill="none"></polyline>
-        ${svgLabel("0°", 700, 310)}
-        ${svgLabel("90°", 390, 80)}
-        ${svgLabel("180°", 80, 310)}
-        ${svgLabel("270°", 390, 520)}
+        ${svgTitle("Antenna Pattern")}
+
+        ${svgCircle(400, 300, 5, "#cc0000")}
+        ${svgLabel("Antenna", 380, 330)}
+
+        ${svgCircle(400, 300, 150, "none", "#1e3a5f", 2)}
+        ${svgLabel(type.toUpperCase(), 360, 120)}
     `;
 
-    return svgWrapper(inner, 800, 600);
+    return svgWrapper(inner, 800, 500);
 }
 
 /* ------------------------------------------------------------
@@ -105,35 +93,39 @@ function patternPoster(type) {
    ------------------------------------------------------------ */
 
 window.runPatternLab = function () {
+    const freq = parseFloat(document.getElementById("pat_freq").value);
     const type = document.getElementById("pat_type").value;
-    const el = parseFloat(document.getElementById("pat_el").value);
+    const height = parseFloat(document.getElementById("pat_height").value);
+
+    const TOA = takeoffAngle(freq, height);
 
     const poster = patternPoster(type);
 
     const html = `
         <div class="card">
-            <h3>Radiation Pattern Analysis</h3>
+            <h3>Antenna Pattern Analysis</h3>
 
+            <strong>Frequency:</strong> ${freq} MHz<br>
             <strong>Antenna Type:</strong> ${type}<br>
-            <strong>Elevation Angle:</strong> ${el}°<br><br>
+            <strong>Height:</strong> ${height} m<br><br>
 
-            <p>This is a simplified 2D azimuth pattern at the selected elevation angle.</p>
+            <strong>Estimated Takeoff Angle:</strong> ${TOA.toFixed(1)}°<br>
+            <p>Elevation pattern approximated using classical far‑field models.</p>
         </div>
 
         <div class="card">
-            <h3>Pattern Plot</h3>
+            <h3>Poster</h3>
             ${poster}
         </div>
     `;
 
     document.getElementById("pattern_results").innerHTML = html;
 
-    // Sidebar update
     document.getElementById("sidebar").innerHTML = `
         <h3>Pattern Notes</h3>
-        <p>Dipoles have a figure‑8 pattern broadside to the wire.</p>
-        <p>Verticals have omnidirectional azimuth patterns.</p>
-        <p>Yagis have strong forward gain and deep rear nulls.</p>
-        <p>Elevation angle dramatically affects real‑world performance.</p>
+        <p>Dipoles favor broadside radiation.</p>
+        <p>Verticals favor low‑angle DX radiation.</p>
+        <p>Loops have deep nulls and strong broadside lobes.</p>
+        <p>Yagis exhibit forward gain and rear rejection.</p>
     `;
 };
