@@ -1,7 +1,5 @@
 /* ---------------------------------------------------------
    Antenna Workbench — Doublet Designer (with NVIS Reflector)
-   Classic center-fed doublet with optional multi-wire
-   ground/elevated NVIS reflector system.
 --------------------------------------------------------- */
 
 import { wavelength, round } from "../utils.js";
@@ -15,14 +13,9 @@ import {
     logNVISReflector
 } from "../engines/nvis-reflector.js";
 
-/* ---------------------------------------------------------
-   DOM HELPERS
---------------------------------------------------------- */
 function $(root, sel) { return root.querySelector(sel); }
 
-/* ---------------------------------------------------------
-   GEOMETRY
---------------------------------------------------------- */
+/* GEOMETRY */
 function computeDoublet(freqMHz, heightM, totalLengthM) {
     const lambda = wavelength(freqMHz);
     const half = totalLengthM / 2;
@@ -35,9 +28,7 @@ function computeDoublet(freqMHz, heightM, totalLengthM) {
     };
 }
 
-/* ---------------------------------------------------------
-   FEEDPOINT IMPEDANCE MODEL
---------------------------------------------------------- */
+/* FEEDPOINT Z */
 function estimateFeedZ(freqMHz, totalLengthM) {
     const lambda = wavelength(freqMHz);
     const ratio = totalLengthM / lambda;
@@ -48,9 +39,7 @@ function estimateFeedZ(freqMHz, totalLengthM) {
     return 300;
 }
 
-/* ---------------------------------------------------------
-   GAIN MODEL
---------------------------------------------------------- */
+/* GAIN */
 function estimateGain(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -61,9 +50,7 @@ function estimateGain(freqMHz, heightM) {
     return 6.0;
 }
 
-/* ---------------------------------------------------------
-   TAKEOFF ANGLE MODEL
---------------------------------------------------------- */
+/* TOA */
 function estimateTOA(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -74,9 +61,7 @@ function estimateTOA(freqMHz, heightM) {
     return 25;
 }
 
-/* ---------------------------------------------------------
-   SUMMARY BUILDER
---------------------------------------------------------- */
+/* SUMMARY */
 function buildSummary(freqMHz, D, feedZ, gain, toa, R) {
     const band = findBand(freqMHz);
     const bandLabel = band
@@ -112,9 +97,7 @@ function buildSummary(freqMHz, D, feedZ, gain, toa, R) {
     `;
 }
 
-/* ---------------------------------------------------------
-   VALIDATION
---------------------------------------------------------- */
+/* VALIDATION */
 function validate(freqStr, heightStr, lengthStr, reflEnabledStr, numStr, spacingStr, offsetStr, reflHeightStr) {
     const errors = [];
 
@@ -146,9 +129,7 @@ function validate(freqStr, heightStr, lengthStr, reflEnabledStr, numStr, spacing
     return errors;
 }
 
-/* ---------------------------------------------------------
-   COMPUTE HANDLER
---------------------------------------------------------- */
+/* COMPUTE */
 function handleCompute(root) {
     const freqStr = $(root, "#dbl-freq").value;
     const heightStr = $(root, "#dbl-height").value;
@@ -204,9 +185,7 @@ function handleCompute(root) {
     });
 }
 
-/* ---------------------------------------------------------
-   MODULE ENTRY POINT
---------------------------------------------------------- */
+/* ENTRY */
 export default function initDoubletDesigner(root) {
     const btn = $(root, "#dbl-compute");
     if (btn) btn.addEventListener("click", () => handleCompute(root));
