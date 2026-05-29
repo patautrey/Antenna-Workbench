@@ -11,34 +11,21 @@ import { log } from "../log.js";
    REFLECTOR EFFECT MODELS
 --------------------------------------------------------- */
 
-// NVIS gain boost model
 function nvisGainBoost(num, heightFrac) {
-    // More wires = stronger NVIS lobe
     let base = num * 0.6; // ~0.6 dB per wire
-
-    // Elevated reflectors sharpen the NVIS lobe
-    if (heightFrac > 0.02 && heightFrac < 0.15) {
-        base += 1.0;
-    }
-
+    if (heightFrac > 0.02 && heightFrac < 0.15) base += 1.0;
     return base;
 }
 
-// DX suppression model
 function dxReduction(num, heightFrac) {
     let base = num * 0.4; // ~0.4 dB per wire
-
     if (heightFrac > 0.02) base += 0.5;
-
     return base;
 }
 
-// TOA shaping model
 function toaShift(num, heightFrac) {
     let shift = num * 1.2; // ~1.2° per wire
-
     if (heightFrac > 0.02) shift += 1.0;
-
     return shift;
 }
 
@@ -47,10 +34,8 @@ function toaShift(num, heightFrac) {
 --------------------------------------------------------- */
 export function computeNVISReflector(freqMHz, mainHeightM, numWires, spacingM, offsetM, reflectorHeightM) {
     const lambda = wavelength(freqMHz);
-
     const heightFrac = reflectorHeightM / lambda;
 
-    // Performance deltas
     const gainNVIS = nvisGainBoost(numWires, heightFrac);
     const dxLoss = dxReduction(numWires, heightFrac);
     const toaDelta = toaShift(numWires, heightFrac);
@@ -76,9 +61,6 @@ export function computeNVISReflector(freqMHz, mainHeightM, numWires, spacingM, o
     };
 }
 
-/* ---------------------------------------------------------
-   LOGGING
---------------------------------------------------------- */
 export function logNVISReflector(params, result) {
     log("nvis-reflector", "Computed NVIS reflector performance", {
         params,
