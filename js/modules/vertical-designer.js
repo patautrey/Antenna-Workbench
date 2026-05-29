@@ -1,256 +1,335 @@
-export default function(content) {
-    content.innerHTML = `
-        <h2>Vertical Designer</h2>
-        <p class="vd-subtitle">
-            Rapid-design HF verticals for portable and fixed operation. Choose band, target height, and environment.
-        </p>
+/* ---------------------------------------------------------
+   Antenna Workbench — Vertical Designer Module
+   Practical HF vertical dimensions, efficiency, and gain
+--------------------------------------------------------- */
 
-        <div class="vd-layout">
-            <div class="vd-column vd-left">
-                <h3>Design Inputs</h3>
+import { wavelength, quarterWave, threeEighthWave, halfWave, round } from "../utils.js";
+import { requirePositive, requireFrequency, toNumber } from "../validators.js";
+import { findBand } from "../constants.js";
+import { infoBox, warnBox } from "../dom.js";
+import { log } from "../log.js";
 
-                <div class="vd-field">
-                    <label for="vd-band">Band</label>
-                    <select id="vd-band">
-                        <option value="3.5">80 m (3.5 MHz)</option>
-                        <option value="5.3">60 m (5.3 MHz)</option>
-                        <option value="7.1">40 m (7.1 MHz)</option>
-                        <option value="10.1">30 m (10.1 MHz)</option>
-                        <option value="14.2" selected>20 m (14.2 MHz)</option>
-                        <option value="18.1">17 m (18.1 MHz)</option>
-                        <option value="21.2">15 m (21.2 MHz)</option>
-                        <option value="24.9">12 m (24.9 MHz)</option>
-                        <option value="28.5">10 m (28.5 MHz)</option>
-                    </select>
-                </div>
+/* ---------------------------------------------------------
+   DOM HELPERS (SCOPED TO ROOT)
+--------------------------------------------------------- */
 
-                <div class="vd-field">
-                    <label for="vd-ground">Ground / Radials</label>
-                    <select id="vd-ground">
-                        <option value="poor">Poor ground, few radials</option>
-                        <option value="average" selected>Average ground, 8–16 radials</option>
-                        <option value="good">Good ground, 32+ radials</option>
-                        <option value="elevated">Elevated radials (2–4 tuned)</option>
-                    </select>
-                </div>
+function $(root, selector) {
+    return root.querySelector(selector);
+}
 
-                <div class="vd-field">
-                    <label for="vd-height">Physical height (m)</label>
-                    <input id="vd-height" type="number" step="0.1" value="10">
-                    <small>Tip-to-ground physical height of the vertical radiator.</small>
-                </div>
+function $all(root, selector) {
+    return Array.from(root.querySelectorAll(selector));
+}
 
-                <div class="vd-field">
-                    <label for="vd-wire-type">Radiator type</label>
-                    <select id="vd-wire-type">
-                        <option value="wire" selected>Wire (portable / guyed)</option>
-                        <option value="tubing">Aluminum tubing</option>
-                        <option value="whip">Telescoping whip</option>
-                    </select>
-                </div>
+/* ---------------------------------------------------------
+   GROUND / RADIAL MODELS
+   Very approximate, intentionally "engineering‑grade"
+--------------------------------------------------------- */
 
-                <h3>Boost Options</h3>
+const GROUND_MODELS = {
+    "poor_0_4": { label: "Poor ground, 0–4 radials", efficiency: 0.25, lossDb: 6 },
+    "average_8_16": { label: "Average ground, 8–16 radials", efficiency: 0.45, lossDb: 3 },
+    "good_32_plus": { label: "Good ground, 32+ radials", efficiency: 0.65, lossDb: 1.5 },
+    "excellent_mesh": { label: "Excellent ground screen / dense radials", efficiency: 0.8, lossDb: 1.0 }
+};
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-reflector"> Reflector (+2.5 dB)</label>
-                </div>
+/* ---------------------------------------------------------
+   RADIATOR TYPE ADJUSTMENTS
+--------------------------------------------------------- */
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-director"> Director (+1.5 dB)</label>
-                </div>
+const RADIATOR_TYPES = {
+    "wire": { label: "Wire (portable / guyed)", mechNote: "Lightweight, easy to deploy, but wind‑sensitive." },
+    "tubular": { label: "Tubular aluminum", mechNote: "Rigid, durable, good long‑term option." },
+    "multi_section": { label: "Multi‑section telescoping", mechNote: "Portable, but watch for contact resistance." }
+};
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-elevated"> Elevated Radials (+1.0 dB)</label>
-                </div>
+/* ---------------------------------------------------------
+   BOOST OPTIONS (dB)
+--------------------------------------------------------- */
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-groundscreen"> Ground Screen (+0.5 dB)</label>
-                </div>
+const BOOSTS = {
+    reflector: 2.5,
+    director: 1.5,
+    elevated: 1.0,
+    screen: 0.5,
+    saltwater: 3.0,
+    dx: 4.0,
+    tod: 0.5,
+    feedline: 0.5
+};
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-saltwater"> Saltwater / Seaside (+3.0 dB)</label>
-                </div>
+/* ---------------------------------------------------------
+   HEIGHT ANALYSIS
+--------------------------------------------------------- */
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-turbo"> 0.70λ DX Turbo Mode (+4.0 dB)</label>
-                </div>
+function analyzeHeight(heightM, freqMHz) {
+    const lambda = wavelength(freqMHz); // meters
+    const frac = heightM / lambda;
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-tod"> Time-of-Day Boost (+0.5 dB)</label>
-                </div>
+    let region = "";
+    if (frac < 0.2) {
+        region = "Short vertical (less than 0.2 λ) — efficiency and low‑angle performance are limited, but NVIS and local coverage can still be useful.";
+    } else if (frac >= 0.2 && frac <= 0.3) {
+        region = "Near 1/4 λ — classic vertical territory with good low‑angle radiation and reasonable efficiency.";
+    } else if (frac > 0.3 && frac <= 0.45) {
+        region = "Between 1/4 λ and 3/8 λ — often a sweet spot for DX, with strong low‑angle radiation.";
+    } else if (frac > 0.45 && frac <= 0.55) {
+        region = "Around 1/2 λ — strong low‑angle radiation but with more pronounced high‑angle lobes.";
+    } else if (frac > 0.55 && frac <= 0.8) {
+        region = "Tall vertical (0.55–0.8 λ) — can produce very strong low‑angle gain but with more complex patterns.";
+    } else {
+        region = "Very tall radiator (> 0.8 λ) — pattern becomes multi‑lobed; modeling is recommended for serious optimization.";
+    }
 
-                <div class="vd-field">
-                    <label><input type="checkbox" id="boost-feedline"> Feedline Type Boost (+0.5 dB)</label>
-                </div>
+    return {
+        lambda,
+        frac,
+        description: region
+    };
+}
 
-                <button id="vd-design-btn">Compute Design</button>
-            </div>
+/* ---------------------------------------------------------
+   EFFICIENCY / GAIN ESTIMATION
+--------------------------------------------------------- */
 
-            <div class="vd-column vd-right">
-                <h3>Design Summary</h3>
-                <div id="vd-summary" class="vd-summary">
-                    <p>Select band and height, then click <strong>Compute Design</strong>.</p>
-                </div>
+function estimateEfficiencyAndGain(freqMHz, heightM, groundKey, boostState) {
+    const ground = GROUND_MODELS[groundKey] || GROUND_MODELS["average_8_16"];
+    const heightInfo = analyzeHeight(heightM, freqMHz);
 
-                <h3>Reference Lengths</h3>
-                <div id="vd-ref" class="vd-ref">
-                    <!-- Filled by JS -->
-                </div>
-            </div>
+    // Base "pattern gain" relative to a 1/4 λ reference vertical over average ground
+    let patternDb = 0;
+
+    if (heightInfo.frac < 0.2) {
+        patternDb -= 2; // short and lossy
+    } else if (heightInfo.frac >= 0.2 && heightInfo.frac <= 0.3) {
+        patternDb += 0; // reference
+    } else if (heightInfo.frac > 0.3 && heightInfo.frac <= 0.45) {
+        patternDb += 1.5; // 3/8 λ sweet spot
+    } else if (heightInfo.frac > 0.45 && heightInfo.frac <= 0.55) {
+        patternDb += 2.0; // 1/2 λ can be strong at low angles
+    } else if (heightInfo.frac > 0.55 && heightInfo.frac <= 0.8) {
+        patternDb += 3.0; // tall vertical, strong low‑angle
+    } else {
+        patternDb += 3.5; // very tall, but pattern complexity caveat
+    }
+
+    // Ground / radial loss
+    const groundLossDb = ground.lossDb;
+
+    // Boost stacking
+    let boostDb = 0;
+    if (boostState.reflector) boostDb += BOOSTS.reflector;
+    if (boostState.director) boostDb += BOOSTS.director;
+    if (boostState.elevated) boostDb += BOOSTS.elevated;
+    if (boostState.screen) boostDb += BOOSTS.screen;
+    if (boostState.saltwater) boostDb += BOOSTS.saltwater;
+    if (boostState.dx) boostDb += BOOSTS.dx;
+    if (boostState.tod) boostDb += BOOSTS.tod;
+    if (boostState.feedline) boostDb += BOOSTS.feedline;
+
+    // Net "effective gain" relative to an isotropic-ish baseline
+    const effectiveGainDb = patternDb - groundLossDb + boostDb;
+
+    return {
+        ground,
+        heightInfo,
+        patternDb,
+        groundLossDb,
+        boostDb,
+        effectiveGainDb
+    };
+}
+
+/* ---------------------------------------------------------
+   UPDATE REFERENCE TABLE
+--------------------------------------------------------- */
+
+function updateReferenceTable(root, freqMHz) {
+    const lambda = wavelength(freqMHz);
+    const qtr = quarterWave(freqMHz);
+    const three8 = threeEighthWave(freqMHz);
+    const half = halfWave(freqMHz);
+
+    const freqCell = $(root, "#vd-ref-freq");
+    const lambdaCell = $(root, "#vd-ref-lambda");
+    const qtrCell = $(root, "#vd-ref-qtr");
+    const three8Cell = $(root, "#vd-ref-three8");
+    const halfCell = $(root, "#vd-ref-half");
+
+    if (!freqCell) return; // table not present
+
+    freqCell.textContent = `${round(freqMHz, 2)} MHz`;
+    lambdaCell.textContent = `${round(lambda, 2)} m`;
+    qtrCell.textContent = `${round(qtr, 2)} m`;
+    three8Cell.textContent = `${round(three8, 2)} m`;
+    halfCell.textContent = `${round(half, 2)} m`;
+}
+
+/* ---------------------------------------------------------
+   BUILD SUMMARY HTML
+--------------------------------------------------------- */
+
+function buildSummary(freqMHz, heightM, groundKey, radiatorKey, est) {
+    const band = findBand(freqMHz);
+    const bandLabel = band ? `${band.name} (${band.low}–${band.high} MHz)` : "Non‑standard HF segment";
+
+    const ground = GROUND_MODELS[groundKey] || GROUND_MODELS["average_8_16"];
+    const radiator = RADIATOR_TYPES[radiatorKey] || RADIATOR_TYPES["wire"];
+
+    const lines = [];
+
+    lines.push(`<strong>Design frequency:</strong> ${round(freqMHz, 2)} MHz (${bandLabel})`);
+    lines.push(`<strong>Physical height:</strong> ${round(heightM, 2)} m (${round(est.heightInfo.frac * 100, 1)}% of λ)`);
+    lines.push(`<strong>Height region:</strong> ${est.heightInfo.description}`);
+    lines.push(`<strong>Ground / radials:</strong> ${ground.label}`);
+    lines.push(`<strong>Radiator type:</strong> ${radiator.label}`);
+    lines.push(`<strong>Pattern gain (height‑driven):</strong> ${round(est.patternDb, 1)} dB`);
+    lines.push(`<strong>Ground / radial loss:</strong> −${round(est.groundLossDb, 1)} dB`);
+    lines.push(`<strong>Boost stack:</strong> +${round(est.boostDb, 1)} dB`);
+    lines.push(`<strong>Estimated effective gain:</strong> <span style="color:#4da3ff;">${round(est.effectiveGainDb, 1)} dB</span>`);
+
+    lines.push(`<em>Note:</em> These values are approximate, “engineering‑grade” estimates. For critical designs, NEC modeling and on‑air testing are recommended.`);
+
+    return `
+        <div class="poster-preview">
+            ${lines.map(l => `<p>${l}</p>`).join("")}
+            <p style="margin-top:10px;font-size:13px;color:#aaa;">
+                Mechanical note: ${radiator.mechNote}
+            </p>
         </div>
     `;
+}
 
-    const info = document.getElementById("sidebar");
-    if (info) {
-        info.innerHTML = `
-            <h3>Vertical Designer — Info Panel</h3>
-            <p>
-                This tool estimates practical HF vertical dimensions and operating characteristics based on band,
-                physical height, and ground system quality.
-            </p>
-            <ul>
-                <li><strong>Band:</strong> Sets design frequency and wavelength.</li>
-                <li><strong>Height:</strong> Compared against 1/4λ, 3/8λ, and 1/2λ references.</li>
-                <li><strong>Ground / Radials:</strong> Used to estimate efficiency and loss.</li>
-                <li><strong>Boost Options:</strong> Reflector, director, elevated radials, ground screen, saltwater,
-                    DX turbo, time-of-day, and feedline-type boosts are included in the effective gain estimate.</li>
-            </ul>
-            <p>
-                Future versions can integrate NEC modeling, pattern estimation, and radial optimization.
-            </p>
-        `;
+/* ---------------------------------------------------------
+   READ BOOST STATE FROM CHECKBOXES
+--------------------------------------------------------- */
+
+function readBoostState(root) {
+    return {
+        reflector: !!$(root, "#vd-boost-reflector")?.checked,
+        director: !!$(root, "#vd-boost-director")?.checked,
+        elevated: !!$(root, "#vd-boost-elevated")?.checked,
+        screen: !!$(root, "#vd-boost-screen")?.checked,
+        saltwater: !!$(root, "#vd-boost-saltwater")?.checked,
+        dx: !!$(root, "#vd-boost-dx")?.checked,
+        tod: !!$(root, "#vd-boost-tod")?.checked,
+        feedline: !!$(root, "#vd-boost-feedline")?.checked
+    };
+}
+
+/* ---------------------------------------------------------
+   VALIDATE INPUTS
+--------------------------------------------------------- */
+
+function validateInputs(freqStr, heightStr) {
+    const errors = [];
+
+    const freqErr = requireFrequency(freqStr, "Design frequency");
+    if (freqErr) errors.push(freqErr);
+
+    const heightErr = requirePositive(heightStr, "Physical height");
+    if (heightErr) errors.push(heightErr);
+
+    return errors;
+}
+
+/* ---------------------------------------------------------
+   MAIN COMPUTE HANDLER
+--------------------------------------------------------- */
+
+function handleCompute(root) {
+    const bandSelect = $(root, "#vd-band");
+    const groundSelect = $(root, "#vd-ground");
+    const heightInput = $(root, "#vd-height");
+    const radiatorSelect = $(root, "#vd-radiator");
+    const summaryHost = $(root, "#vd-summary");
+
+    if (!bandSelect || !groundSelect || !heightInput || !radiatorSelect || !summaryHost) {
+        console.error("Vertical Designer: Missing one or more required DOM elements.");
+        return;
     }
 
-    const c = 300; // λ(m) ≈ 300 / f(MHz)
+    const freqStr = bandSelect.value || bandSelect.dataset.freq || "14.2";
+    const heightStr = heightInput.value;
+    const groundKey = groundSelect.value || "average_8_16";
+    const radiatorKey = radiatorSelect.value || "wire";
 
-    const bandEl = document.getElementById("vd-band");
-    const groundEl = document.getElementById("vd-ground");
-    const heightEl = document.getElementById("vd-height");
-    const wireTypeEl = document.getElementById("vd-wire-type");
-    const btn = document.getElementById("vd-design-btn");
-    const summaryEl = document.getElementById("vd-summary");
-    const refEl = document.getElementById("vd-ref");
+    const errors = validateInputs(freqStr, heightStr);
 
-    function computeRefs() {
-        const fMHz = parseFloat(bandEl.value || "14.2");
-        const lambda = c / fMHz;
-        const qtr = lambda / 4;
-        const threeEighth = lambda * 0.375;
-        const half = lambda / 2;
-
-        refEl.innerHTML = `
-            <table class="vd-table">
-                <tr><th>Parameter</th><th>Value</th></tr>
-                <tr><td>Frequency</td><td>${fMHz.toFixed(2)} MHz</td></tr>
-                <tr><td>Wavelength (λ)</td><td>${lambda.toFixed(2)} m</td></tr>
-                <tr><td>¼ λ</td><td>${qtr.toFixed(2)} m</td></tr>
-                <tr><td>⅜ λ</td><td>${threeEighth.toFixed(2)} m</td></tr>
-                <tr><td>½ λ</td><td>${half.toFixed(2)} m</td></tr>
-            </table>
-        `;
-
-        return { lambda, qtr, threeEighth, half, fMHz };
+    if (errors.length > 0) {
+        summaryHost.innerHTML = "";
+        const box = warnBox(errors.join("<br>"));
+        summaryHost.appendChild(box);
+        return;
     }
 
-    function estimateEfficiency(groundQuality, heightRatio) {
-        let base;
-        switch (groundQuality) {
-            case "poor": base = 0.35; break;
-            case "average": base = 0.55; break;
-            case "good": base = 0.75; break;
-            case "elevated": base = 0.8; break;
-            default: base = 0.5;
-        }
+    const freqMHz = toNumber(freqStr);
+    const heightM = toNumber(heightStr);
 
-        const idealCenter = 0.32;
-        const deviation = Math.abs(heightRatio - idealCenter);
-        const heightFactor = Math.max(0.4, 1 - deviation * 3);
-
-        return base * heightFactor;
+    if (freqMHz === null || heightM === null) {
+        summaryHost.innerHTML = "";
+        const box = warnBox("Could not parse inputs. Please check your values.");
+        summaryHost.appendChild(box);
+        return;
     }
 
-    function describeHeightRegion(heightRatio) {
-        if (heightRatio < 0.15) return "very short (loaded) vertical region";
-        if (heightRatio < 0.25) return "short vertical, below ¼λ";
-        if (heightRatio < 0.35) return "near ¼–⅜λ sweet spot";
-        if (heightRatio < 0.55) return "approaching ½λ, higher angle components increase";
-        return "tall radiator region, pattern becomes more complex";
+    // Update reference table
+    updateReferenceTable(root, freqMHz);
+
+    // Read boosts
+    const boostState = readBoostState(root);
+
+    // Estimate performance
+    const est = estimateEfficiencyAndGain(freqMHz, heightM, groundKey, boostState);
+
+    // Build summary
+    summaryHost.innerHTML = "";
+    const html = buildSummary(freqMHz, heightM, groundKey, radiatorKey, est);
+    const box = infoBox(html);
+    summaryHost.appendChild(box);
+
+    log("vertical-designer", "Computed design", {
+        freqMHz,
+        heightM,
+        groundKey,
+        radiatorKey,
+        boostState,
+        est
+    });
+}
+
+/* ---------------------------------------------------------
+   MODULE ENTRY POINT
+   This is called by the router with a content root element
+--------------------------------------------------------- */
+
+export default function initVerticalDesigner(root) {
+    // Assume the HTML for Vertical Designer is already injected into `root`
+    // and contains the expected IDs.
+
+    const computeBtn = $(root, "#vd-compute");
+    if (computeBtn) {
+        computeBtn.addEventListener("click", () => handleCompute(root));
     }
 
-    function onDesign() {
-        const { lambda, qtr, threeEighth, half, fMHz } = computeRefs();
-        const h = parseFloat(heightEl.value || "10");
-        const groundQuality = groundEl.value;
-        const wireType = wireTypeEl.value;
+    // If a default band is selected, pre‑populate the reference table
+    const bandSelect = $(root, "#vd-band");
+    if (bandSelect) {
+        const freqStr = bandSelect.value || bandSelect.dataset.freq || "14.2";
+        const freqMHz = toNumber(freqStr) || 14.2;
+        updateReferenceTable(root, freqMHz);
 
-        const heightRatio = h / lambda;
-        const eff = estimateEfficiency(groundQuality, heightRatio);
-        const effPct = (eff * 100).toFixed(0);
-        const regionDesc = describeHeightRegion(heightRatio);
-
-        let groundText;
-        switch (groundQuality) {
-            case "poor":
-                groundText = "High ground loss expected; additional radials or elevated system strongly recommended.";
-                break;
-            case "average":
-                groundText = "Reasonable performance; more radials will still improve efficiency.";
-                break;
-            case "good":
-                groundText = "Low ground loss; system should perform very well if matched correctly.";
-                break;
-            case "elevated":
-                groundText = "Elevated tuned radials; current distribution is more controlled and efficient.";
-                break;
-            default:
-                groundText = "Ground system not specified.";
-        }
-
-        let wireText;
-        switch (wireType) {
-            case "wire":
-                wireText = "Lightweight wire radiator — ideal for portable or guyed installations.";
-                break;
-            case "tubing":
-                wireText = "Tubular radiator — mechanically robust, broader bandwidth than thin wire.";
-                break;
-            case "whip":
-                wireText = "Telescoping whip — convenient but may require loading for lower bands.";
-                break;
-            default:
-                wireText = "Radiator type not specified.";
-        }
-
-        let boost = 0;
-        if (document.getElementById("boost-reflector").checked) boost += 2.5;
-        if (document.getElementById("boost-director").checked) boost += 1.5;
-        if (document.getElementById("boost-elevated").checked) boost += 1.0;
-        if (document.getElementById("boost-groundscreen").checked) boost += 0.5;
-        if (document.getElementById("boost-saltwater").checked) boost += 3.0;
-        if (document.getElementById("boost-turbo").checked) boost += 4.0;
-        if (document.getElementById("boost-tod").checked) boost += 0.5;
-        if (document.getElementById("boost-feedline").checked) boost += 0.5;
-
-        const effectiveGain = (eff * 100 + boost).toFixed(1);
-
-        summaryEl.innerHTML = `
-            <p><strong>Design frequency:</strong> ${fMHz.toFixed(2)} MHz</p>
-            <p><strong>Physical height:</strong> ${h.toFixed(1)} m (${(heightRatio * 100).toFixed(1)}% of λ)</p>
-            <p><strong>Height region:</strong> ${regionDesc}</p>
-            <p><strong>Estimated efficiency:</strong> ~${effPct}% (very rough qualitative estimate)</p>
-            <p><strong>Total Boost:</strong> +${boost.toFixed(1)} dB</p>
-            <p><strong>Effective Radiated Gain:</strong> ${effectiveGain} dB-equivalent (efficiency + boosts)</p>
-            <p><strong>Ground system:</strong> ${groundText}</p>
-            <p><strong>Radiator type:</strong> ${wireText}</p>
-            <hr>
-            <p>
-                <em>Next steps:</em> refine this design with real measurements, NEC modeling, or on-air A/B testing.
-            </p>
-        `;
+        bandSelect.addEventListener("change", () => {
+            const fStr = bandSelect.value || bandSelect.dataset.freq || "14.2";
+            const fMHz = toNumber(fStr) || 14.2;
+            updateReferenceTable(root, fMHz);
+        });
     }
 
-    computeRefs();
+    const summaryHost = $(root, "#vd-summary");
+    if (summaryHost) {
+        summaryHost.innerHTML = "Select band and height, then click <strong>Compute Design</strong>.";
+    }
 
-    if (btn) btn.addEventListener("click", onDesign);
-    if (bandEl) bandEl.addEventListener("change", computeRefs);
+    log("vertical-designer", "Module initialized");
 }
