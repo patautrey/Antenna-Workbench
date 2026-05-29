@@ -2,12 +2,4 @@ body {
     background: #0a0f1f url("../images/blueprint-grid.png") repeat;
     background-size: 600px 600px;
     color: #e0e6f0;
-    font-family: "Segoe UI", sans-serif;
-}
-
-.content-main {
-    background: rgba(0, 0, 0, 0.35);
-    padding: 20px;
-    border-radius: 8px;
-    backdrop-filter: blur(2px);
 }
