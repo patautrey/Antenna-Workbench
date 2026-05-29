@@ -1,5 +1,5 @@
 // Core module loader
-export function loadModule(name) {
+function loadModule(name) {
     const content = document.getElementById("content");
     content.innerHTML = `<h2>Loading ${name}...</h2>`;
 
@@ -15,3 +15,6 @@ export function loadModule(name) {
             console.error("Module load error:", err);
         });
 }
+
+// ⭐ MAKE IT GLOBAL ⭐
+window.loadModule = loadModule;
