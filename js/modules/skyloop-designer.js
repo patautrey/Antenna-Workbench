@@ -1,7 +1,6 @@
 /* ---------------------------------------------------------
    Antenna Workbench — Skyloop Designer
-   Full-wave horizontal loop with optional multi-wire
-   NVIS reflector system (ground or elevated).
+   Full-wave horizontal loop with NVIS reflector support
 --------------------------------------------------------- */
 
 import { wavelength, round } from "../utils.js";
@@ -15,14 +14,9 @@ import {
     logNVISReflector
 } from "../engines/nvis-reflector.js";
 
-/* ---------------------------------------------------------
-   DOM HELPERS
---------------------------------------------------------- */
 function $(root, sel) { return root.querySelector(sel); }
 
-/* ---------------------------------------------------------
-   GEOMETRY
---------------------------------------------------------- */
+/* GEOMETRY */
 function computeSkyloop(freqMHz, perimeterM, heightM) {
     const lambda = wavelength(freqMHz);
     const side = perimeterM / 4;
@@ -35,9 +29,7 @@ function computeSkyloop(freqMHz, perimeterM, heightM) {
     };
 }
 
-/* ---------------------------------------------------------
-   FEEDPOINT IMPEDANCE MODEL
---------------------------------------------------------- */
+/* FEEDPOINT Z */
 function estimateFeedZ(freqMHz, perimeterM) {
     const lambda = wavelength(freqMHz);
     const ratio = perimeterM / lambda;
@@ -48,9 +40,7 @@ function estimateFeedZ(freqMHz, perimeterM) {
     return 300;
 }
 
-/* ---------------------------------------------------------
-   GAIN MODEL
---------------------------------------------------------- */
+/* GAIN */
 function estimateGain(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -61,9 +51,7 @@ function estimateGain(freqMHz, heightM) {
     return 5.5;
 }
 
-/* ---------------------------------------------------------
-   TAKEOFF ANGLE MODEL
---------------------------------------------------------- */
+/* TOA */
 function estimateTOA(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -74,9 +62,7 @@ function estimateTOA(freqMHz, heightM) {
     return 30;
 }
 
-/* ---------------------------------------------------------
-   SUMMARY BUILDER
---------------------------------------------------------- */
+/* SUMMARY */
 function buildSummary(freqMHz, S, feedZ, gain, toa, R) {
     const band = findBand(freqMHz);
     const bandLabel = band
@@ -113,9 +99,7 @@ function buildSummary(freqMHz, S, feedZ, gain, toa, R) {
     `;
 }
 
-/* ---------------------------------------------------------
-   VALIDATION
---------------------------------------------------------- */
+/* VALIDATION */
 function validate(freqStr, heightStr, perStr, reflEnabledStr, numStr, spacingStr, offsetStr, reflHeightStr) {
     const errors = [];
 
@@ -147,9 +131,7 @@ function validate(freqStr, heightStr, perStr, reflEnabledStr, numStr, spacingStr
     return errors;
 }
 
-/* ---------------------------------------------------------
-   COMPUTE HANDLER
---------------------------------------------------------- */
+/* COMPUTE */
 function handleCompute(root) {
     const freqStr = $(root, "#sky-freq").value;
     const heightStr = $(root, "#sky-height").value;
@@ -205,9 +187,7 @@ function handleCompute(root) {
     });
 }
 
-/* ---------------------------------------------------------
-   MODULE ENTRY POINT
---------------------------------------------------------- */
+/* ENTRY */
 export default function initSkyloopDesigner(root) {
     const btn = $(root, "#sky-compute");
     if (btn) btn.addEventListener("click", () => handleCompute(root));
