@@ -1,45 +1,245 @@
-.vd-layout {
+/* ---------------------------------------------------------
+   Antenna Workbench — Global Stylesheet
+   Layout, typography, panels, tables, buttons, modules
+--------------------------------------------------------- */
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #1e1e1e;
+    color: #e0e0e0;
+}
+
+.workbench {
     display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
+    height: 100vh;
+    overflow: hidden;
 }
 
-.vd-column {
-    flex: 1 1 280px;
-    min-width: 260px;
+/* ---------------------------------------------------------
+   SIDEBAR
+--------------------------------------------------------- */
+
+.sidebar {
+    width: 260px;
+    background: #111;
+    border-right: 2px solid #333;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
 }
 
-.vd-left, .vd-right {
-    background: rgba(0, 0, 0, 0.35);
-    padding: 15px;
-    border-radius: 8px;
+.sidebar-title {
+    margin: 0 0 20px 0;
+    font-size: 22px;
+    color: #fff;
+    text-align: center;
 }
 
-.vd-field {
-    margin-bottom: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.vd-field label {
-    font-weight: 600;
+.menu-item {
+    padding: 12px 15px;
+    margin-bottom: 6px;
+    background: #222;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-.vd-field input,
-.vd-field select {
-    padding: 4px 6px;
+.menu-item:hover {
+    background: #333;
 }
 
-.vd-table {
+.menu-item.active {
+    background: #444;
+    border-left: 4px solid #4da3ff;
+}
+
+.menu-item span {
+    font-size: 15px;
+}
+
+/* ---------------------------------------------------------
+   CONTENT PANEL
+--------------------------------------------------------- */
+
+.content {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+    background: #1e1e1e;
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 26px;
+    color: #4da3ff;
+}
+
+h3 {
+    margin-top: 25px;
+    font-size: 20px;
+    color: #fff;
+}
+
+.vd-subtitle,
+.dxv-subtitle,
+.nvis-subtitle {
+    margin-top: -10px;
+    margin-bottom: 20px;
+    color: #ccc;
+}
+
+/* ---------------------------------------------------------
+   FORM FIELDS
+--------------------------------------------------------- */
+
+.vd-field,
+.fl-field,
+.nvis-field,
+.dbl-field,
+.dxv-field,
+.prop-field {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+input[type="number"],
+select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #fff;
+}
+
+small {
+    display: block;
+    margin-top: 4px;
+    color: #aaa;
+    font-size: 12px;
+}
+
+/* ---------------------------------------------------------
+   BUTTONS
+--------------------------------------------------------- */
+
+button {
+    padding: 10px 16px;
+    background: #4da3ff;
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+button:hover {
+    background: #6bb4ff;
+}
+
+/* ---------------------------------------------------------
+   TABLES
+--------------------------------------------------------- */
+
+.vd-table,
+.fl-table,
+.nvis-table,
+.dbl-table,
+.dxv-table,
+.prop-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 6px;
+    margin-top: 10px;
 }
 
 .vd-table th,
-.vd-table td {
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 4px 6px;
-    font-size: 0.9rem;
+.fl-table th,
+.nvis-table th,
+.dbl-table th,
+.dxv-table th,
+.prop-table th {
+    background: #333;
+    padding: 8px;
+    text-align: left;
+}
+
+.vd-table td,
+.fl-table td,
+.nvis-table td,
+.dbl-table td,
+.dxv-table td,
+.prop-table td {
+    padding: 8px;
+    border-bottom: 1px solid #333;
+}
+
+/* ---------------------------------------------------------
+   MODULE LAYOUTS
+--------------------------------------------------------- */
+
+.vd-layout,
+.fl-layout,
+.nvis-layout,
+.dbl-layout,
+.dxv-layout,
+.prop-layout,
+.poster-layout {
+    display: flex;
+    gap: 25px;
+}
+
+.vd-column,
+.fl-column,
+.nvis-column,
+.dbl-column,
+.dxv-column,
+.prop-column,
+.poster-column {
+    flex: 1;
+}
+
+/* ---------------------------------------------------------
+   POSTER PREVIEW
+--------------------------------------------------------- */
+
+.poster-preview {
+    background: #222;
+    padding: 15px;
+    border-radius: 4px;
+    min-height: 150px;
+}
+
+/* ---------------------------------------------------------
+   SCROLLBARS
+--------------------------------------------------------- */
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
