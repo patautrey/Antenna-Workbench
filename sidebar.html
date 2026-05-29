@@ -1,36 +1,37 @@
-<!-- Core Modules -->
-<h4>Core Modules</h4>
-<button onclick="loadModule('vertical-designer')">Vertical Designer</button>
-<button onclick="loadModule('feedline')">Feedline & CMC Engine</button>
-<button onclick="loadModule('posters')">Posters</button>
+<div id="sidebar" class="sidebar">
+    <h2 class="sidebar-title">Antenna Workbench</h2>
 
-<!-- HF Labs -->
-<h4>HF Labs</h4>
-<button onclick="loadModule('nvis-lab')">NVIS Lab</button>
-<button onclick="loadModule('dx-lab')">DX Lab</button>
-<button onclick="loadModule('band-opening')">HF Band Opening Predictor</button>
-<button onclick="loadModule('muf-luf-explorer')">MUF/LUF Explorer</button>
-<button onclick="loadModule('noise-snr-lab')">Noise & SNR Lab</button>
-<button onclick="loadModule('link-budget')">HF Link Budget Simulator</button>
+    <ul class="menu">
+        <li class="menu-item active" data-module="vertical-designer">
+            <span>Vertical Designer</span>
+        </li>
 
-<!-- Antenna Physics -->
-<h4>Antenna Physics</h4>
-<button onclick="loadModule('coupling-simulator')">Coupling Simulator</button>
-<button onclick="loadModule('harmonic-explorer')">Harmonic Explorer</button>
-<button onclick="loadModule('system-gain')">System Gain Calculator</button>
-<button onclick="loadModule('phased-array')">Phased Array Designer</button>
-<button onclick="loadModule('ground-loss-map')">Ground Loss Mapping Engine</button>
+        <li class="menu-item" data-module="feedline">
+            <span>Feedline & CMC Engine</span>
+        </li>
 
-<!-- Engineering Limits -->
-<h4>Engineering Limits</h4>
-<button onclick="loadModule('power-handling')">Thermal Power Handling Lab</button>
-<button onclick="loadModule('failure-mode')">Failure Mode & Stress Analyzer</button>
+        <li class="menu-item" data-module="posters">
+            <span>Posters & Cheat Sheets</span>
+        </li>
 
-<!-- AI & Tools -->
-<h4>AI & Tools</h4>
-<button onclick="loadModule('antenna-optimizer-ai')">HF Antenna Optimization AI</button>
-<button onclick="loadModule('workbench-exporter')">Workbench Exporter & Packager</button>
+        <li class="menu-item" data-module="propagation">
+            <span>Propagation Lab</span>
+        </li>
 
-<!-- Diagnostics -->
-<h4>Diagnostics</h4>
-<button onclick="loadModule('diagnostic-module')">Workbench Diagnostic</button>
+        <li class="menu-item" data-module="nvis-designer">
+            <span>NVIS Designer</span>
+        </li>
+
+        <li class="menu-item" data-module="doublet-designer">
+            <span>Doublet Designer</span>
+        </li>
+
+        <li class="menu-item" data-module="dx-vertical">
+            <span>DX Vertical Lab</span>
+        </li>
+    </ul>
+
+    <div class="sidebar-info">
+        <p>Select a tool from the menu to begin.</p>
+    </div>
+</div>
