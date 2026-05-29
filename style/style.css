@@ -1,0 +1,45 @@
+.vd-layout {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.vd-column {
+    flex: 1 1 280px;
+    min-width: 260px;
+}
+
+.vd-left, .vd-right {
+    background: rgba(0, 0, 0, 0.35);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.vd-field {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vd-field label {
+    font-weight: 600;
+}
+
+.vd-field input,
+.vd-field select {
+    padding: 4px 6px;
+}
+
+.vd-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+}
+
+.vd-table th,
+.vd-table td {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 4px 6px;
+    font-size: 0.9rem;
+}
