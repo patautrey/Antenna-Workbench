@@ -1,7 +1,6 @@
 /* ---------------------------------------------------------
    Antenna Workbench — NVIS Dipole Designer
-   Low horizontal dipole optimized for NVIS, with optional
-   multi-wire ground/elevated reflector system.
+   Low horizontal dipole with multi-wire NVIS reflector
 --------------------------------------------------------- */
 
 import { wavelength, round } from "../utils.js";
@@ -15,17 +14,12 @@ import {
     logNVISReflector
 } from "../engines/nvis-reflector.js";
 
-/* ---------------------------------------------------------
-   DOM HELPERS
---------------------------------------------------------- */
 function $(root, sel) { return root.querySelector(sel); }
 
-/* ---------------------------------------------------------
-   GEOMETRY
---------------------------------------------------------- */
+/* GEOMETRY */
 function computeNVISDipole(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
-    const half = lambda / 4; // classic NVIS dipole: 0.5 λ total
+    const half = lambda / 4;
 
     return {
         lambda,
@@ -35,9 +29,7 @@ function computeNVISDipole(freqMHz, heightM) {
     };
 }
 
-/* ---------------------------------------------------------
-   FEEDPOINT IMPEDANCE MODEL
---------------------------------------------------------- */
+/* FEEDPOINT Z */
 function estimateFeedZ(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -47,9 +39,7 @@ function estimateFeedZ(freqMHz, heightM) {
     return 55;
 }
 
-/* ---------------------------------------------------------
-   GAIN MODEL (NVIS region)
---------------------------------------------------------- */
+/* GAIN */
 function estimateGain(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -59,9 +49,7 @@ function estimateGain(freqMHz, heightM) {
     return 3.0;
 }
 
-/* ---------------------------------------------------------
-   TAKEOFF ANGLE MODEL (NVIS)
---------------------------------------------------------- */
+/* TOA */
 function estimateTOA(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -71,9 +59,7 @@ function estimateTOA(freqMHz, heightM) {
     return 65;
 }
 
-/* ---------------------------------------------------------
-   SUMMARY BUILDER
---------------------------------------------------------- */
+/* SUMMARY */
 function buildSummary(freqMHz, D, feedZ, gain, toa, R) {
     const band = findBand(freqMHz);
     const bandLabel = band
@@ -109,9 +95,7 @@ function buildSummary(freqMHz, D, feedZ, gain, toa, R) {
     `;
 }
 
-/* ---------------------------------------------------------
-   VALIDATION
---------------------------------------------------------- */
+/* VALIDATION */
 function validate(freqStr, heightStr, reflEnabledStr, numStr, spacingStr, offsetStr, reflHeightStr) {
     const errors = [];
 
@@ -140,9 +124,7 @@ function validate(freqStr, heightStr, reflEnabledStr, numStr, spacingStr, offset
     return errors;
 }
 
-/* ---------------------------------------------------------
-   COMPUTE HANDLER
---------------------------------------------------------- */
+/* COMPUTE */
 function handleCompute(root) {
     const freqStr = $(root, "#nvis-freq").value;
     const heightStr = $(root, "#nvis-height").value;
@@ -195,9 +177,7 @@ function handleCompute(root) {
     });
 }
 
-/* ---------------------------------------------------------
-   MODULE ENTRY POINT
---------------------------------------------------------- */
+/* ENTRY */
 export default function initNVISDipoleDesigner(root) {
     const btn = $(root, "#nvis-compute");
     if (btn) btn.addEventListener("click", () => handleCompute(root));
