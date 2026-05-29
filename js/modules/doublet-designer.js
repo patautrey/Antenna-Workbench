@@ -1,187 +1,163 @@
-export default function(content) {
-    content.innerHTML = `
-        <h2>Doublet Designer</h2>
-        <p class="vd-subtitle">
-            Multi‑band HF doublet length planning, feedline selection, and current distribution guidance.
-        </p>
+/* ---------------------------------------------------------
+   Antenna Workbench — Doublet Designer Module
+   Multi-band doublet lengths, feedline modeling,
+   height analysis, and SWR envelope estimation
+--------------------------------------------------------- */
 
-        <div class="dbl-layout">
-            <div class="dbl-column dbl-left">
-                <h3>Doublet Parameters</h3>
+import { wavelength, round } from "../utils.js";
+import { requireFrequency, requirePositive, toNumber } from "../validators.js";
+import { infoBox, warnBox } from "../dom.js";
+import { findBand } from "../constants.js";
+import { log } from "../log.js";
 
-                <div class="dbl-field">
-                    <label for="dbl-band">Primary Band</label>
-                    <select id="dbl-band">
-                        <option value="3.5">80 m (3.5 MHz)</option>
-                        <option value="5.3">60 m (5.3 MHz)</option>
-                        <option value="7.1" selected>40 m (7.1 MHz)</option>
-                        <option value="10.1">30 m (10.1 MHz)</option>
-                        <option value="14.2">20 m (14.2 MHz)</option>
-                    </select>
-                </div>
+/* ---------------------------------------------------------
+   DOM HELPERS
+--------------------------------------------------------- */
+function $(root, sel) { return root.querySelector(sel); }
+function $all(root, sel) { return Array.from(root.querySelectorAll(sel)); }
 
-                <div class="dbl-field">
-                    <label for="dbl-total">Total Doublet Length (ft)</label>
-                    <input id="dbl-total" type="number" step="1" value="88">
-                    <small>Total tip‑to‑tip wire length.</small>
-                </div>
+/* ---------------------------------------------------------
+   FEEDLINE MODELS
+--------------------------------------------------------- */
+const FEEDLINES = {
+    "450": { z0: 450, lossDb: 0.2 },
+    "300": { z0: 300, lossDb: 0.35 },
+    "600": { z0: 600, lossDb: 0.15 },
+    "open": { z0: 550, lossDb: 0.1 }
+};
 
-                <div class="dbl-field">
-                    <label for="dbl-feedline">Feedline Type</label>
-                    <select id="dbl-feedline">
-                        <option value="ladder" selected>450Ω Ladder Line</option>
-                        <option value="window">300Ω Window Line</option>
-                        <option value="coax">Coax (not recommended)</option>
-                    </select>
-                </div>
+/* ---------------------------------------------------------
+   LENGTH CALCULATION
+--------------------------------------------------------- */
+function computeDoubletLengths(freqMHz) {
+    const lambda = wavelength(freqMHz);
 
-                <div class="dbl-field">
-                    <label for="dbl-feedlen">Feedline Length (ft)</label>
-                    <input id="dbl-feedlen" type="number" step="1" value="50">
-                </div>
+    return {
+        lambda,
+        half: lambda / 2,
+        full: lambda,
+        multi: lambda * 0.48 // common multi-band compromise
+    };
+}
 
-                <button id="dbl-compute-btn">Compute Doublet</button>
-            </div>
+/* ---------------------------------------------------------
+   HEIGHT REGION ANALYSIS
+--------------------------------------------------------- */
+function analyzeHeight(heightM, freqMHz) {
+    const lambda = wavelength(freqMHz);
+    const frac = heightM / lambda;
 
-            <div class="dbl-column dbl-right">
-                <h3>Doublet Summary</h3>
-                <div id="dbl-summary" class="dbl-summary">
-                    <p>Enter parameters and click <strong>Compute Doublet</strong>.</p>
-                </div>
+    if (frac < 0.15)
+        return "Low height (<0.15 λ): NVIS‑dominant, high-angle radiation.";
+    if (frac < 0.25)
+        return "Moderate height (0.15–0.25 λ): mixed angles, still NVIS‑leaning.";
+    if (frac < 0.5)
+        return "Good height (0.25–0.5 λ): balanced pattern, strong regional coverage.";
+    if (frac < 0.75)
+        return "High (0.5–0.75 λ): strong low‑angle DX potential.";
+    return "Very high (>0.75 λ): multi‑lobed pattern, excellent DX but complex lobes.";
+}
 
-                <h3>Reference Data</h3>
-                <div id="dbl-ref" class="dbl-ref"></div>
-            </div>
+/* ---------------------------------------------------------
+   SWR ENVELOPE ESTIMATION
+--------------------------------------------------------- */
+function estimateSWREnvelope(freqMHz, feedKey) {
+    const f = FEEDLINES[feedKey] || FEEDLINES["450"];
+
+    // Very approximate SWR envelope
+    const base = 1.5;
+    const mismatch = Math.abs(f.z0 - 450) * 0.002;
+    const freqPenalty = Math.abs(freqMHz - 14.2) * 0.03;
+
+    return base + mismatch + freqPenalty;
+}
+
+/* ---------------------------------------------------------
+   SUMMARY BUILDER
+--------------------------------------------------------- */
+function buildSummary(freqMHz, heightM, feedKey, L) {
+    const band = findBand(freqMHz);
+    const bandLabel = band ? `${band.name} (${band.low}–${band.high} MHz)` : "Non‑standard HF segment";
+
+    const feed = FEEDLINES[feedKey];
+    const swr = estimateSWREnvelope(freqMHz, feedKey);
+    const heightRegion = analyzeHeight(heightM, freqMHz);
+
+    const lines = [];
+
+    lines.push(`<strong>Design frequency:</strong> ${round(freqMHz, 2)} MHz (${bandLabel})`);
+    lines.push(`<strong>Height above ground:</strong> ${round(heightM, 2)} m`);
+    lines.push(`<strong>Height region:</strong> ${heightRegion}`);
+    lines.push(`<strong>Feedline:</strong> ${feedKey} Ω (loss ≈ ${feed.lossDb} dB / 100 ft)`);
+    lines.push(`<strong>Half‑wave length:</strong> ${round(L.half, 2)} m`);
+    lines.push(`<strong>Full‑wave length:</strong> ${round(L.full, 2)} m`);
+    lines.push(`<strong>Multi‑band compromise length:</strong> <span style="color:#4da3ff;">${round(L.multi, 2)} m</span>`);
+    lines.push(`<strong>Estimated SWR envelope:</strong> ${round(swr, 2)} : 1`);
+
+    return `
+        <div class="poster-preview">
+            ${lines.map(l => `<p>${l}</p>`).join("")}
+            <p style="margin-top:10px;font-size:13px;color:#aaa;">
+                Note: Doublets are extremely flexible. Feedline length, height, and tuner quality
+                strongly influence multi‑band performance.
+            </p>
         </div>
     `;
+}
 
-    // INFO PANEL
-    const info = document.getElementById("sidebar");
-    info.innerHTML = `
-        <h3>Doublet Designer — Info Panel</h3>
-        <p>
-            A doublet is a non‑resonant multi‑band HF antenna fed with balanced line and a tuner.
-            Length selection affects current distribution, feedline impedance, and tuner load.
-        </p>
-        <ul>
-            <li>Best lengths avoid exact multiples of ½λ on any band.</li>
-            <li>88 ft and 135 ft are classic multi‑band choices.</li>
-            <li>Balanced line minimizes loss under high SWR.</li>
-            <li>Coax is discouraged due to extreme mismatch loss.</li>
-        </ul>
-        <p>Future versions will include impedance charts and tuner stress modeling.</p>
-    `;
+/* ---------------------------------------------------------
+   VALIDATION
+--------------------------------------------------------- */
+function validate(freqStr, heightStr) {
+    const errors = [];
 
-    const c = 300; // λ(m) ≈ 300 / f(MHz)
+    const fErr = requireFrequency(freqStr, "Design frequency");
+    if (fErr) errors.push(fErr);
 
-    const bandEl = document.getElementById("dbl-band");
-    const totalEl = document.getElementById("dbl-total");
-    const feedTypeEl = document.getElementById("dbl-feedline");
-    const feedLenEl = document.getElementById("dbl-feedlen");
-    const btn = document.getElementById("dbl-compute-btn");
-    const summaryEl = document.getElementById("dbl-summary");
-    const refEl = document.getElementById("dbl-ref");
+    const hErr = requirePositive(heightStr, "Height above ground");
+    if (hErr) errors.push(hErr);
 
-    function computeRefs() {
-        const fMHz = parseFloat(bandEl.value);
-        const lambda = c / fMHz;
-        const half = lambda / 2;
-        const qtr = lambda / 4;
+    return errors;
+}
 
-        refEl.innerHTML = `
-            <table class="dbl-table">
-                <tr><th>Parameter</th><th>Value</th></tr>
-                <tr><td>Frequency</td><td>${fMHz.toFixed(2)} MHz</td></tr>
-                <tr><td>Wavelength (λ)</td><td>${lambda.toFixed(2)} m</td></tr>
-                <tr><td>½ λ</td><td>${half.toFixed(2)} m</td></tr>
-                <tr><td>¼ λ</td><td>${qtr.toFixed(2)} m</td></tr>
-            </table>
-        `;
+/* ---------------------------------------------------------
+   COMPUTE HANDLER
+--------------------------------------------------------- */
+function handleCompute(root) {
+    const freqStr = $(root, "#dblt-freq").value;
+    const heightStr = $(root, "#dblt-height").value;
+    const feedKey = $(root, "#dblt-feedline").value;
+    const summaryHost = $(root, "#dblt-summary");
 
-        return { fMHz, lambda, half, qtr };
+    const errors = validate(freqStr, heightStr);
+    if (errors.length > 0) {
+        summaryHost.innerHTML = "";
+        summaryHost.appendChild(warnBox(errors.join("<br>")));
+        return;
     }
 
-    function computeDoublet() {
-        const { fMHz, lambda, half, qtr } = computeRefs();
+    const freqMHz = toNumber(freqStr);
+    const heightM = toNumber(heightStr);
 
-        const totalFt = parseFloat(totalEl.value);
-        const totalM = totalFt * 0.3048;
-        const legM = totalM / 2;
+    const L = computeDoubletLengths(freqMHz);
 
-        const feedType = feedTypeEl.value;
-        const feedLenFt = parseFloat(feedLenEl.value);
+    summaryHost.innerHTML = "";
+    summaryHost.appendChild(infoBox(buildSummary(freqMHz, heightM, feedKey, L)));
 
-        let feedText;
-        switch (feedType) {
-            case "ladder":
-                feedText = "450Ω ladder line — excellent for high SWR, minimal loss.";
-                break;
-            case "window":
-                feedText = "300Ω window line — good performance, slightly higher loss.";
-                break;
-            case "coax":
-                feedText = "Coax — NOT recommended due to extreme mismatch loss.";
-                break;
-        }
+    log("doublet-designer", "Computed doublet design", { freqMHz, heightM, feedKey, L });
+}
 
-        const legRatio = legM / (lambda / 2);
-        let resonanceDesc;
-        if (legRatio < 0.4) resonanceDesc = "Short doublet — high impedance, current peaks near feedpoint.";
-        else if (legRatio < 0.6) resonanceDesc = "Near half‑wave — moderate impedance, good current distribution.";
-        else resonanceDesc = "Long doublet — multiple current peaks, complex impedance.";
+/* ---------------------------------------------------------
+   MODULE ENTRY POINT
+--------------------------------------------------------- */
+export default function initDoubletDesigner(root) {
+    const btn = $(root, "#dblt-compute");
+    if (btn) btn.addEventListener("click", () => handleCompute(root));
 
-        const bands = [
-            { name: "80m", freq: 3.5 },
-            { name: "60m", freq: 5.3 },
-            { name: "40m", freq: 7.1 },
-            { name: "30m", freq: 10.1 },
-            { name: "20m", freq: 14.2 },
-            { name: "17m", freq: 18.1 },
-            { name: "15m", freq: 21.2 },
-            { name: "12m", freq: 24.9 },
-            { name: "10m", freq: 28.5 }
-        ];
-
-        let coverage = "";
-        bands.forEach(b => {
-            const lam = 300 / b.freq;
-            const leg = legM;
-            const ratio = leg / (lam / 2);
-
-            let status;
-            if (ratio < 0.3) status = "High Z — tuner load heavy";
-            else if (ratio < 0.6) status = "Good match region";
-            else if (ratio < 1.2) status = "Multiple peaks — workable";
-            else status = "Complex impedance — tuner stress likely";
-
-            coverage += `
-                <tr>
-                    <td>${b.name}</td>
-                    <td>${b.freq} MHz</td>
-                    <td>${status}</td>
-                </tr>
-            `;
-        });
-
-        summaryEl.innerHTML = `
-            <p><strong>Total Length:</strong> ${totalFt} ft (${totalM.toFixed(2)} m)</p>
-            <p><strong>Leg Length:</strong> ${(totalFt / 2).toFixed(1)} ft</p>
-            <p><strong>Primary Band:</strong> ${fMHz.toFixed(2)} MHz</p>
-            <p><strong>Resonance Region:</strong> ${resonanceDesc}</p>
-            <p><strong>Feedline:</strong> ${feedText}</p>
-            <p><strong>Feedline Length:</strong> ${feedLenFt} ft</p>
-            <hr>
-            <h4>Multi‑Band Coverage</h4>
-            <table class="dbl-table">
-                <tr><th>Band</th><th>Freq</th><th>Match Behavior</th></tr>
-                ${coverage}
-            </table>
-            <p><em>Note:</em> Balanced tuners handle these loads far better than coax‑fed systems.</p>
-        `;
+    const summaryHost = $(root, "#dblt-summary");
+    if (summaryHost) {
+        summaryHost.innerHTML = "Enter frequency and height, then click <strong>Compute Doublet</strong>.";
     }
 
-    computeRefs();
-    btn.addEventListener("click", computeDoublet);
-    bandEl.addEventListener("change", computeRefs);
-    totalEl.addEventListener("input", computeRefs);
+    log("doublet-designer", "Module initialized");
 }
