@@ -1,5 +1,198 @@
+/* ---------------------------------------------------------
+   Antenna Workbench — Theme Stylesheet
+   Color palette, accents, shadows, highlights
+--------------------------------------------------------- */
+
+/* ---------------------------------------------------------
+   COLOR PALETTE
+--------------------------------------------------------- */
+
+:root {
+    --bg-main: #1e1e1e;
+    --bg-panel: #222;
+    --bg-sidebar: #111;
+    --bg-hover: #333;
+    --bg-active: #444;
+
+    --border-dark: #333;
+    --border-light: #555;
+
+    --text-main: #e0e0e0;
+    --text-muted: #aaa;
+    --text-bright: #fff;
+
+    --accent: #4da3ff;
+    --accent-light: #6bb4ff;
+    --accent-dark: #2f7fd1;
+
+    --danger: #ff4d4d;
+    --success: #4dff88;
+    --warning: #ffd24d;
+}
+
+/* ---------------------------------------------------------
+   GLOBAL BACKGROUND + TEXT
+--------------------------------------------------------- */
+
 body {
-    background: #0a0f1f url("../images/blueprint-grid.png") repeat;
-    background-size: 600px 600px;
-    color: #e0e6f0;
+    background: var(--bg-main);
+    color: var(--text-main);
+}
+
+/* ---------------------------------------------------------
+   SIDEBAR
+--------------------------------------------------------- */
+
+.sidebar {
+    background: var(--bg-sidebar);
+    border-right: 2px solid var(--border-dark);
+}
+
+.menu-item {
+    background: var(--bg-panel);
+}
+
+.menu-item:hover {
+    background: var(--bg-hover);
+}
+
+.menu-item.active {
+    background: var(--bg-active);
+    border-left: 4px solid var(--accent);
+}
+
+/* ---------------------------------------------------------
+   CONTENT PANEL
+--------------------------------------------------------- */
+
+.content {
+    background: var(--bg-main);
+}
+
+/* ---------------------------------------------------------
+   HEADERS
+--------------------------------------------------------- */
+
+h2 {
+    color: var(--accent);
+}
+
+h3 {
+    color: var(--text-bright);
+}
+
+.vd-subtitle,
+.dxv-subtitle,
+.nvis-subtitle {
+    color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------
+   INPUTS
+--------------------------------------------------------- */
+
+input[type="number"],
+select {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dark);
+    color: var(--text-bright);
+}
+
+input[type="number"]:focus,
+select:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+/* ---------------------------------------------------------
+   BUTTONS
+--------------------------------------------------------- */
+
+button {
+    background: var(--accent);
+    color: #000;
+}
+
+button:hover {
+    background: var(--accent-light);
+}
+
+/* ---------------------------------------------------------
+   TABLES
+--------------------------------------------------------- */
+
+.vd-table th,
+.fl-table th,
+.nvis-table th,
+.dbl-table th,
+.dxv-table th,
+.prop-table th {
+    background: var(--bg-hover);
+    color: var(--text-bright);
+}
+
+.vd-table td,
+.fl-table td,
+.nvis-table td,
+.dbl-table td,
+.dxv-table td,
+.prop-table td {
+    border-bottom: 1px solid var(--border-dark);
+}
+
+/* ---------------------------------------------------------
+   POSTER PREVIEW
+--------------------------------------------------------- */
+
+.poster-preview {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dark);
+}
+
+/* ---------------------------------------------------------
+   MODULE PANELS
+--------------------------------------------------------- */
+
+.dxv-summary,
+.nvis-summary,
+.dbl-summary,
+.fl-results,
+.vd-summary,
+.prop-summary {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dark);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+/* ---------------------------------------------------------
+   STATUS COLORS
+--------------------------------------------------------- */
+
+.status-good {
+    color: var(--success);
+}
+
+.status-warn {
+    color: var(--warning);
+}
+
+.status-bad {
+    color: var(--danger);
+}
+
+/* ---------------------------------------------------------
+   SHADOWS + DEPTH
+--------------------------------------------------------- */
+
+.sidebar,
+.content,
+.poster-preview,
+.dxv-summary,
+.nvis-summary,
+.dbl-summary,
+.fl-results,
+.vd-summary,
+.prop-summary {
+    box-shadow: 0 0 10px #00000055;
 }
