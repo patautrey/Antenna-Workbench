@@ -1,7 +1,7 @@
 /* ---------------------------------------------------------
    Antenna Workbench — NVIS Reflector Engine
    Multi-wire ground/elevated reflector model for low
-   horizontal antennas (dipoles, doublets, loops, NVIS arrays)
+   horizontal antennas and NVIS/vertical grids
 --------------------------------------------------------- */
 
 import { wavelength, round } from "../utils.js";
