@@ -1,7 +1,5 @@
 /* ---------------------------------------------------------
    Antenna Workbench — Bobtail Curtain Designer
-   3-vertical bobtail: geometry, gain, F/B, feedpoint Z,
-   TOA, and optional reflector wire
 --------------------------------------------------------- */
 
 import { wavelength, round } from "../utils.js";
@@ -10,63 +8,42 @@ import { infoBox, warnBox } from "../dom.js";
 import { findBand } from "../constants.js";
 import { log } from "../log.js";
 
-/* ---------------------------------------------------------
-   DOM HELPERS
---------------------------------------------------------- */
 function $(root, sel) { return root.querySelector(sel); }
 
-/* ---------------------------------------------------------
-   CONSTANTS
---------------------------------------------------------- */
 const BOBTAIL = {
-    vertLength: 0.25,   // λ verticals
-    spacing:    0.25    // λ between verticals
+    vertLength: 0.25,
+    spacing:    0.25
 };
 
 const REFLECTOR = {
-    defaultSpacing: 0.15, // λ behind array
-    lengthFactor:   1.06  // reflector slightly longer
+    defaultSpacing: 0.15,
+    lengthFactor:   1.06
 };
 
-/* ---------------------------------------------------------
-   FEEDPOINT IMPEDANCE MODEL
---------------------------------------------------------- */
 function estimateFeedZ(freqMHz, hasReflector) {
-    // Typical bobtail feed Z ~ 50–70 Ω, reflector pulls it slightly
     const base = 60;
     return hasReflector ? base * 0.9 : base;
 }
 
-/* ---------------------------------------------------------
-   GAIN MODEL
---------------------------------------------------------- */
 function estimateGain(freqMHz, heightM, hasReflector) {
-    // Base bobtail gain ~5–6 dBi, reflector adds ~1–2 dB
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
 
     let base = 5.5;
-    if (frac > 0.25 && frac < 0.6) base += 0.8; // sweet spot
+    if (frac > 0.25 && frac < 0.6) base += 0.8;
     if (hasReflector) base += 1.3;
 
-    const freqFactor = (freqMHz - 7.0) * 0.03; // slightly better at higher HF
+    const freqFactor = (freqMHz - 7.0) * 0.03;
     return base + freqFactor;
 }
 
-/* ---------------------------------------------------------
-   FRONT-TO-BACK MODEL
---------------------------------------------------------- */
 function estimateFB(freqMHz, hasReflector) {
-    // Bare bobtail has modest F/B, reflector improves it
     const base = 8;
     const reflBoost = hasReflector ? 7 : 0;
     const freqFactor = (freqMHz - 7.0) * 0.1;
     return base + reflBoost + freqFactor;
 }
 
-/* ---------------------------------------------------------
-   TAKEOFF ANGLE MODEL
---------------------------------------------------------- */
 function estimateTOA(heightM, freqMHz) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -77,9 +54,6 @@ function estimateTOA(heightM, freqMHz) {
     return 14;
 }
 
-/* ---------------------------------------------------------
-   HEIGHT REGION ANALYSIS
---------------------------------------------------------- */
 function analyzeHeight(heightM, freqMHz) {
     const lambda = wavelength(freqMHz);
     const f = heightM / lambda;
@@ -93,21 +67,17 @@ function analyzeHeight(heightM, freqMHz) {
     return "High (>0.6 λ): very low TOA, strong DX but more height required.";
 }
 
-/* ---------------------------------------------------------
-   GEOMETRY CALCULATION
---------------------------------------------------------- */
 function computeBobtail(freqMHz, heightM, reflectorEnabled, reflectorSpacingLambda) {
     const lambda = wavelength(freqMHz);
 
     const vertLen = lambda * BOBTAIL.vertLength;
     const spacing = lambda * BOBTAIL.spacing;
 
-    // Three verticals along X, centered at 0
     const x0 = -spacing;
     const x1 = 0;
     const x2 = spacing;
 
-    const topHeight = heightM + vertLen; // top wire height
+    const topHeight = heightM + vertLen;
 
     const verticals = [
         { label: "Left vertical",   x: x0, yBottom: 0, yTop: vertLen },
@@ -124,7 +94,7 @@ function computeBobtail(freqMHz, heightM, reflectorEnabled, reflectorSpacingLamb
     let reflector = null;
     if (reflectorEnabled) {
         const reflSpacingM = reflectorSpacingLambda * lambda;
-        const reflY = vertLen; // same height as top wire
+        const reflY = vertLen;
         const reflLength = (x2 - x0) * REFLECTOR.lengthFactor;
 
         reflector = {
@@ -147,9 +117,6 @@ function computeBobtail(freqMHz, heightM, reflectorEnabled, reflectorSpacingLamb
     };
 }
 
-/* ---------------------------------------------------------
-   SUMMARY BUILDER
---------------------------------------------------------- */
 function buildSummary(freqMHz, B, hasReflector, reflectorSpacingLambda, feedZ, gain, fb, toa) {
     const band = findBand(freqMHz);
     const bandLabel = band ? `${band.name} (${band.low}–${band.high} MHz)` : "Non-standard HF segment";
@@ -189,9 +156,6 @@ function buildSummary(freqMHz, B, hasReflector, reflectorSpacingLambda, feedZ, g
     `;
 }
 
-/* ---------------------------------------------------------
-   VALIDATION
---------------------------------------------------------- */
 function validate(freqStr, heightStr, reflSpacingStr, reflEnabledStr) {
     const errors = [];
 
@@ -216,9 +180,6 @@ function validate(freqStr, heightStr, reflSpacingStr, reflEnabledStr) {
     return errors;
 }
 
-/* ---------------------------------------------------------
-   COMPUTE HANDLER
---------------------------------------------------------- */
 function handleCompute(root) {
     const freqStr = $(root, "#bobtail-freq").value;
     const heightStr = $(root, "#bobtail-height").value;
@@ -264,9 +225,6 @@ function handleCompute(root) {
     });
 }
 
-/* ---------------------------------------------------------
-   MODULE ENTRY POINT
---------------------------------------------------------- */
 export default function initBobtailDesigner(root) {
     const btn = $(root, "#bobtail-compute");
     if (btn) btn.addEventListener("click", () => handleCompute(root));
