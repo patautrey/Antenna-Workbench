@@ -1,7 +1,6 @@
 /* ---------------------------------------------------------
    Antenna Workbench — Vertical NVIS Designer
-   Single vertical radiator with optional multi-wire
-   ground/elevated reflector grid for NVIS enhancement.
+   Single vertical with reflector grid for NVIS enhancement
 --------------------------------------------------------- */
 
 import { wavelength, round } from "../utils.js";
@@ -15,17 +14,12 @@ import {
     logNVISReflector
 } from "../engines/nvis-reflector.js";
 
-/* ---------------------------------------------------------
-   DOM HELPERS
---------------------------------------------------------- */
 function $(root, sel) { return root.querySelector(sel); }
 
-/* ---------------------------------------------------------
-   GEOMETRY
---------------------------------------------------------- */
+/* GEOMETRY */
 function computeVerticalNVIS(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
-    const vertLen = lambda * 0.25; // quarter-wave vertical
+    const vertLen = lambda * 0.25;
 
     return {
         lambda,
@@ -34,23 +28,19 @@ function computeVerticalNVIS(freqMHz, heightM) {
     };
 }
 
-/* ---------------------------------------------------------
-   FEEDPOINT IMPEDANCE MODEL
---------------------------------------------------------- */
+/* FEEDPOINT Z */
 function estimateFeedZ(freqMHz, groundQuality) {
     if (groundQuality === "poor") return 45;
     if (groundQuality === "average") return 35;
-    return 25; // good ground
+    return 25;
 }
 
-/* ---------------------------------------------------------
-   GAIN MODEL (NVIS region)
---------------------------------------------------------- */
+/* GAIN */
 function estimateGain(freqMHz, heightM, groundQuality) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
 
-    let base = 1.5; // verticals are not naturally NVIS-strong
+    let base = 1.5;
 
     if (frac < 0.1) base += 1.0;
     if (groundQuality === "good") base += 0.5;
@@ -58,9 +48,7 @@ function estimateGain(freqMHz, heightM, groundQuality) {
     return base;
 }
 
-/* ---------------------------------------------------------
-   TAKEOFF ANGLE MODEL (NVIS)
---------------------------------------------------------- */
+/* TOA */
 function estimateTOA(freqMHz, heightM) {
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
@@ -70,9 +58,7 @@ function estimateTOA(freqMHz, heightM) {
     return 60;
 }
 
-/* ---------------------------------------------------------
-   SUMMARY BUILDER
---------------------------------------------------------- */
+/* SUMMARY */
 function buildSummary(freqMHz, V, feedZ, gain, toa, R) {
     const band = findBand(freqMHz);
     const bandLabel = band
@@ -108,9 +94,7 @@ function buildSummary(freqMHz, V, feedZ, gain, toa, R) {
     `;
 }
 
-/* ---------------------------------------------------------
-   VALIDATION
---------------------------------------------------------- */
+/* VALIDATION */
 function validate(freqStr, heightStr, groundStr, reflEnabledStr, numStr, spacingStr, offsetStr, reflHeightStr) {
     const errors = [];
 
@@ -141,9 +125,7 @@ function validate(freqStr, heightStr, groundStr, reflEnabledStr, numStr, spacing
     return errors;
 }
 
-/* ---------------------------------------------------------
-   COMPUTE HANDLER
---------------------------------------------------------- */
+/* COMPUTE */
 function handleCompute(root) {
     const freqStr = $(root, "#vnv-freq").value;
     const heightStr = $(root, "#vnv-height").value;
@@ -198,9 +180,7 @@ function handleCompute(root) {
     });
 }
 
-/* ---------------------------------------------------------
-   MODULE ENTRY POINT
---------------------------------------------------------- */
+/* ENTRY */
 export default function initVerticalNVISDesigner(root) {
     const btn = $(root, "#vnv-compute");
     if (btn) btn.addEventListener("click", () => handleCompute(root));
