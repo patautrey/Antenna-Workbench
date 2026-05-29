@@ -2,50 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>KG5IEF Antenna‑Workbench</title>
+    <title>Antenna Workbench</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="style/theme.css">
+    <!-- Styles -->
     <link rel="stylesheet" href="style/style.css">
-</head>
+    <link rel="stylesheet" href="style/theme.css">
 
+</head>
 <body>
 
-<header>
-    <h1>KG5IEF Antenna‑Workbench</h1>
-    <h2>HF + Portable Antenna Engineering Suite</h2>
-</header>
+    <div id="workbench" class="workbench">
 
-<main class="layout">
+        <!-- Sidebar -->
+        <div id="sidebar-container">
+            <!-- sidebar.html will be loaded here -->
+        </div>
 
-    <!-- LEFT SIDEBAR -->
-    <aside id="modules" class="sidebar-left">
-        <h3>Modules</h3>
-        <div id="sidebar-buttons"></div>
-    </aside>
+        <!-- Main Content -->
+        <div id="content" class="content">
+            <p>Loading Antenna Workbench…</p>
+        </div>
 
-    <!-- MAIN CONTENT -->
-    <section id="content" class="content-main">
-        <h2>Welcome</h2>
-        <p>Select a module from the left to begin.</p>
-    </section>
+    </div>
 
-    <!-- RIGHT INFO PANEL -->
-    <aside id="sidebar" class="sidebar-right">
-        <h3>Info Panel</h3>
-        <p>This panel will display module-specific notes, tips, and engineering data.</p>
-    </aside>
+    <!-- App Loader -->
+    <script type="module">
+        import initWorkbench from "./js/app.js";
 
-</main>
-
-<script type="module" src="js/app.js?v=3"></script>
-
-<script>
-    fetch("sidebar.html?v=3")
-        .then(r => r.text())
-        .then(html => {
-            document.getElementById("sidebar-buttons").innerHTML = html;
-        });
-</script>
+        // Load sidebar HTML dynamically
+        fetch("./sidebar.html")
+            .then(r => r.text())
+            .then(html => {
+                document.getElementById("sidebar-container").innerHTML = html;
+                initWorkbench();
+            })
+            .catch(err => {
+                document.getElementById("content").innerHTML =
+                    "<p>Error loading Workbench.</p>";
+                console.error(err);
+            });
+    </script>
 
 </body>
 </html>
