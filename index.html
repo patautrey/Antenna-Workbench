@@ -3,46 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <title>Antenna Workbench</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Styles -->
-    <link rel="stylesheet" href="style/style.css">
-    <link rel="stylesheet" href="style/theme.css">
-
+    <link rel="stylesheet" href="css/workbench.css">
 </head>
+
 <body>
 
-    <div id="workbench" class="workbench">
+<div id="app">
 
-        <!-- Sidebar -->
-        <div id="sidebar-container">
-            <!-- sidebar.html will be loaded here -->
-        </div>
+    <header>
+        <h1>Antenna Workbench</h1>
+        <p>HF Antenna Design • NVIS • Arrays • Reflectors • Pattern Lab</p>
+    </header>
 
-        <!-- Main Content -->
-        <div id="content" class="content">
-            <p>Loading Antenna Workbench…</p>
-        </div>
+    <nav id="tabs">
+        <button data-tab="doublet">Doublet</button>
+        <button data-tab="loop">Loop</button>
+        <button data-tab="skyloop">Skyloop</button>
+        <button data-tab="nvisdipole">NVIS Dipole</button>
+        <button data-tab="verticalnvis">Vertical NVIS</button>
+        <button data-tab="sterba">Sterba Curtain</button>
+        <button data-tab="bobtail">Bobtail Curtain</button>
+        <button data-tab="performer">Performer</button>
+        <button data-tab="dominator">Dominator</button>
+    </nav>
 
-    </div>
+    <main id="content">
 
-    <!-- App Loader -->
-    <script type="module">
-        import initWorkbench from "./js/app.js";
+        <!-- DOUBLEt -->
+        <section id="doublet" class="tab">
+            <h2>Doublet Designer</h2>
 
-        // Load sidebar HTML dynamically
-        fetch("./sidebar.html")
-            .then(r => r.text())
-            .then(html => {
-                document.getElementById("sidebar-container").innerHTML = html;
-                initWorkbench();
-            })
-            .catch(err => {
-                document.getElementById("content").innerHTML =
-                    "<p>Error loading Workbench.</p>";
-                console.error(err);
-            });
-    </script>
+            <label>Frequency (MHz): <input id="dbl-freq"></label>
+            <label>Height (m): <input id="dbl-height"></label>
+            <label>Total Length (m): <input id="dbl-length"></label>
+
+            <h3>NVIS Reflector</h3>
+            <label>Enable:
+                <select id="dbl-refl-enabled">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>Reflector Wires: <input id="dbl-refl-num"></label>
+            <label>Spacing (m): <input id="dbl-refl-spacing"></label>
+            <label>Offset (m): <input id="dbl-refl-offset"></label>
+            <label>Reflector Height (m): <input id="dbl-refl-height"></label>
+
+            <button id="dbl-compute">Compute Doublet</button>
+
+            <div id="dbl-summary" class="summary"></div>
+        </section>
+
+        <!-- LOOP -->
+        <section id="loop" class="tab">
+            <h2>Loop Designer</h2>
+
+            <label>Frequency (MHz): <input id="loop-freq"></label>
+            <label>Height (m): <input id="loop-height"></label>
+            <label>Perimeter (m): <input id="loop-perimeter"></label>
+
+            <h3>NVIS Reflector</h3>
+            <label>Enable:
+                <select id="loop-refl-enabled">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>Reflector Wires: <input id="loop-refl-num"></label>
+            <label>Spacing (m): <input id="loop-refl-spacing"></label>
+            <label>Offset (m): <input id="loop-refl-offset"></label>
+            <label>Reflector Height (m): <input id="loop-refl-height"></label>
+
+            <button id="loop-compute">Compute Loop</button>
+
+            <div id="loop-summary" class="summary"></div>
+        </section>
+
+        <!-- SKYLOOP -->
+        <section id="skyloop" class="tab">
+            <h2>Skyloop Designer</h2>
+
+            <label>Frequency (MHz): <input id="sky-freq"></label>
+            <label>Height (m): <input id="sky-height"></label>
+            <label>Perimeter (m): <input id="sky-perimeter"></label>
+
+            <h3>NVIS Reflector</h3>
+            <label>Enable:
+                <select id="sky-refl-enabled">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>Reflector Wires: <input id="sky-refl-num"></label>
+            <label>Spacing (m): <input id="sky-refl-spacing"></label>
+            <label>Offset (m): <input id="sky-refl-offset"></label>
+            <label>Reflector Height (m): <input id="sky-refl-height"></label>
+
+            <button id="sky-compute">Compute Skyloop</button>
+
+            <div id="sky-summary" class="summary"></div>
+        </section>
+
+        <!-- NVIS DIPOLE -->
+        <section id="nvisdipole" class="tab">
+            <h2>NVIS Dipole Designer</h2>
+
+            <label>Frequency (MHz): <input id="nvis-freq"></label>
+            <label>Height (m): <input id="nvis-height"></label>
+
+            <h3>NVIS Reflector</h3>
+            <label>Enable:
+                <select id="nvis-refl-enabled">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>Reflector Wires: <input id="nvis-refl-num"></label>
+            <label>Spacing (m): <input id="nvis-refl-spacing"></label>
+            <label>Offset (m): <input id="nvis-refl-offset"></label>
+            <label>Reflector Height (m): <input id="nvis-refl-height"></label>
+
+            <button id="nvis-compute">Compute NVIS Dipole</button>
+
+            <div id="nvis-summary" class="summary"></div>
+        </section>
+
+        <!-- VERTICAL NVIS -->
+        <section id="verticalnvis" class="tab">
+            <h2>Vertical NVIS Designer</h2>
+
+            <label>Frequency (MHz): <input id="vnv-freq"></label>
+            <label>Base Height (m): <input id="vnv-height"></label>
+
+            <label>Ground Quality:
+                <select id="vnv-ground">
+                    <option value="poor">Poor</option>
+                    <option value="average">Average</option>
+                    <option value="good">Good</option>
+                </select>
+            </label>
+
+            <h3>Reflector Grid</h3>
+            <label>Enable:
+                <select id="vnv-refl-enabled">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>Reflector Wires: <input id="vnv-refl-num"></label>
+            <label>Spacing (m): <input id="vnv-refl-spacing"></label>
+            <label>Radius/Offset (m): <input id="vnv-refl-offset"></label>
+            <label>Reflector Height (m): <input id="vnv-refl-height"></label>
+
+            <button id="vnv-compute">Compute Vertical NVIS</button>
+
+            <div id="vnv-summary" class="summary"></div>
+        </section>
+
+        <!-- STERBA -->
+        <section id="sterba" class="tab">
+            <h2>Sterba Curtain Designer</h2>
+
+            <label>Frequency (MHz): <input id="sterba-freq"></label>
+            <label>Bays: <input id="sterba-bays"></label>
+            <label>Bottom Height (m): <input id="sterba-height"></label>
+
+            <h3>Reflector</h3>
+            <label>Enable:
+                <select id="sterba-reflector">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>Reflector Spacing (λ): <input id="sterba-reflector-spacing"></label>
+
+            <button id="sterba-compute">Compute Sterba Curtain</button>
+
+            <div id="sterba-summary" class="summary"></div>
+        </section>
+
+        <!-- BOBTAIL -->
+        <section id="bobtail" class="tab">
+            <h2>Bobtail Curtain Designer</h2>
+
+            <label>Frequency (MHz): <input id="bobtail-freq"></label>
+            <label>Base Height (m): <input id="bobtail-height"></label>
+
+            <h3>Reflector</h3>
+            <label>Enable:
+                <select id="bobtail-reflector">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>Reflector Spacing (λ): <input id="bobtail-reflector-spacing"></label>
+
+            <button id="bobtail-compute">Compute Bobtail Curtain</button>
+
+            <div id="bobtail-summary" class="summary"></div>
+        </section>
+
+        <!-- PERFORMER -->
+        <section id="performer" class="tab">
+            <h2>Performer — Pattern Lab</h2>
+
+            <label>Antenna Name: <input id="perf-name"></label>
+            <label>Frequency (MHz): <input id="perf-freq"></label>
+            <label>Gain (dBi): <input id="perf-gain"></label>
+            <label>F/B (dB): <input id="perf-fb"></label>
+            <label>F/S (dB): <input id="perf-fs"></label>
+            <label>TOA (°): <input id="perf-toa"></label>
+            <label>Height (m): <input id="perf-height"></label>
+
+            <h3>NVIS Mode</h3>
+            <label>Enable:
+                <select id="perf-nvis-mode">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </label>
+
+            <label>NVIS Boost (dB): <input id="perf-nvis-boost"></label>
+            <label>DX Loss (dB): <input id="perf-nvis-dxloss"></label>
+
+            <button id="perf-compute">Compute Pattern</button>
+
+            <canvas id="perf-elev" width="400" height="400"></canvas>
+            <canvas id="perf-az" width="400" height="400"></canvas>
+
+            <div id="perf-summary" class="summary"></div>
+        </section>
+
+        <!-- DOMINATOR -->
+        <section id="dominator" class="tab">
+            <h2>Dominator — Antenna Recommender</h2>
+
+            <label>Goal:
+                <select id="dom-goal">
+                    <option value="dx">DX</option>
+                    <option value="nvis">NVIS</option>
+                    <option value="general">General</option>
+                    <option value="multiband">Multiband</option>
+                </select>
+            </label>
+
+            <label>Height (m): <input id="dom-height"></label>
+            <label>Span (m): <input id="dom-span"></label>
+            <label>Space (m): <input id="dom-space"></label>
+
+            <label>Ground:
+                <select id="dom-ground">
+                    <option value="poor">Poor</option>
+                    <option value="average">Average</option>
+                    <option value="good">Good</option>
+                </select>
+            </label>
+
+            <label>Noise:
+                <select id="dom-noise">
+                    <option value="quiet">Quiet</option>
+                    <option value="average">Average</option>
+                    <option value="noisy">Noisy</option>
+                </select>
+            </label>
+
+            <h3>NVIS Parameters</h3>
+            <label>Reflector Wires: <input id="dom-reflector-wires"></label>
+            <label>Height Fraction (λ): <input id="dom-height-frac"></label>
+            <label>Reflector Height Fraction (λ): <input id="dom-reflector-height-frac"></label>
+
+            <button id="dom-compute">Compute Recommendations</button>
+
+            <div id="dom-summary" class="summary"></div>
+        </section>
+
+    </main>
+
+</div>
+
+<script type="module" src="js/workbench-loader.js"></script>
 
 </body>
 </html>
