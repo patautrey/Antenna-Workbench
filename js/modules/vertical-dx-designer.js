@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------
    Antenna Workbench — Vertical DX Designer
-   1/4-wave vertical with radials and boost options
+   1/4-wave vertical with radials + always-visible boost controls
 --------------------------------------------------------- */
 
 import { wavelength } from "../utils.js";
@@ -17,29 +17,24 @@ function computeVerticalDX(freqMHz, heightM, radialCount, radialLengthM, groundT
     const lambda = wavelength(freqMHz);
     const frac = heightM / lambda;
 
-    // Base gain for ~1/4λ vertical over average ground
-    let baseGain = 1.5; // dBi
+    let baseGain = 1.5; // baseline 1/4λ vertical
 
     if (groundType === "good") baseGain += 0.8;
     if (groundType === "poor") baseGain -= 0.8;
     if (groundType === "saltwater") baseGain += 2.0;
 
-    // Radials: diminishing returns
     const radialFactor = Math.log10(Math.max(1, radialCount)) * 1.2;
     const lengthFactor = Math.min(1, radialLengthM / (lambda / 4));
     baseGain += radialFactor * lengthFactor;
 
-    // Simple DX-ish TOA model
     const toa = Math.max(5, 25 - (frac - 0.25) * 40);
 
-    return {
-        lambda,
-        frac,
-        baseGain,
-        toa
-    };
+    return { lambda, frac, baseGain, toa };
 }
 
+/* ---------------------------------------------------------
+   EXPORT DEFAULT — REQUIRED BY YOUR LOADER
+--------------------------------------------------------- */
 export default function initVerticalDX(root) {
     if (!root) return;
 
@@ -76,25 +71,10 @@ export default function initVerticalDX(root) {
 
             <h3 style="margin-top:1rem;">Boost Controls</h3>
             <div class="field-grid">
-                <label>
-                    <input id="vdx-boost-groundscreen" type="checkbox">
-                    Ground screen
-                </label>
-
-                <label>
-                    <input id="vdx-boost-elevated" type="checkbox">
-                    Elevated radials
-                </label>
-
-                <label>
-                    <input id="vdx-boost-saltwater" type="checkbox">
-                    Saltwater enhancement
-                </label>
-
-                <label>
-                    <input id="vdx-boost-dxturbo" type="checkbox">
-                    0.70λ DX Turbo
-                </label>
+                <label><input id="vdx-boost-groundscreen" type="checkbox"> Ground screen</label>
+                <label><input id="vdx-boost-elevated" type="checkbox"> Elevated radials</label>
+                <label><input id="vdx-boost-saltwater" type="checkbox"> Saltwater enhancement</label>
+                <label><input id="vdx-boost-dxturbo" type="checkbox"> 0.70λ DX Turbo</label>
             </div>
 
             <button id="vdx-compute" style="margin-top:1rem;">Compute Vertical DX</button>
@@ -103,21 +83,19 @@ export default function initVerticalDX(root) {
         </section>
     `;
 
-    const freqInput = $("#content", "#vdx-freq") || document.getElementById("vdx-freq");
-    const heightInput = document.getElementById("vdx-height");
-    const radialsInput = document.getElementById("vdx-radials");
-    const radialLenInput = document.getElementById("vdx-radial-length");
-    const groundSelect = document.getElementById("vdx-ground");
+    const freqInput = $("#vdx-freq");
+    const heightInput = $("#vdx-height");
+    const radialsInput = $("#vdx-radials");
+    const radialLenInput = $("#vdx-radial-length");
+    const groundSelect = $("#vdx-ground");
 
-    const boostGroundScreen = document.getElementById("vdx-boost-groundscreen");
-    const boostElevated = document.getElementById("vdx-boost-elevated");
-    const boostSaltwater = document.getElementById("vdx-boost-saltwater");
-    const boostDxTurbo = document.getElementById("vdx-boost-dxturbo");
+    const boostGroundScreen = $("#vdx-boost-groundscreen");
+    const boostElevated = $("#vdx-boost-elevated");
+    const boostSaltwater = $("#vdx-boost-saltwater");
+    const boostDxTurbo = $("#vdx-boost-dxturbo");
 
-    const summaryDiv = document.getElementById("vdx-summary");
-    const button = document.getElementById("vdx-compute");
-
-    if (!button || !summaryDiv) return;
+    const summaryDiv = $("#vdx-summary");
+    const button = $("#vdx-compute");
 
     button.addEventListener("click", () => {
         const errors = [];
@@ -141,25 +119,14 @@ export default function initVerticalDX(root) {
         const band = findBand(freq);
         const base = computeVerticalDX(freq, height, radials, radialLen, ground);
 
-        const boostConfig = {
+        const boost = BoostEngine.computeBoost({
             groundScreen: boostGroundScreen.checked,
             elevatedRadials: boostElevated.checked,
             saltwater: boostSaltwater.checked,
             dxTurbo: boostDxTurbo.checked
-        };
-
-        const boost = BoostEngine.computeBoost(boostConfig);
-        const totalGain = base.baseGain + boost.totalBoost;
-
-        log("Vertical DX", {
-            freq,
-            height,
-            radials,
-            radialLen,
-            ground,
-            base,
-            boost
         });
+
+        const totalGain = base.baseGain + boost.totalBoost;
 
         const boostLines = boost.details.length
             ? boost.details.map(d => `+${d.boost.toFixed(1)} dB from ${d.label}`).join("<br>")
