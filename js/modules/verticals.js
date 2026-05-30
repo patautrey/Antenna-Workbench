@@ -1,7 +1,7 @@
 // /HF-Workbench/js/modules/verticals.js
-// Verticals Designer module with ModelingEngine + PlotEngine
+// Verticals Designer with BoostEngine + PlotEngine
 
-import { ModelingEngine } from "../modeling-engine.js";
+import { BoostEngine } from "../boost-engine.js";
 import { PlotEngine } from "../plot-engine.js";
 
 export function loadVerticalsDesigner() {
@@ -53,9 +53,7 @@ export function loadVerticalsDesigner() {
         </section>
     `;
 
-    const btn = document.getElementById("vert-compute");
-
-    btn.addEventListener("click", async () => {
+    const compute = async () => {
         const freq = parseFloat(document.getElementById("vert-freq").value);
         const height = parseFloat(document.getElementById("vert-height").value);
         const elements = parseInt(document.getElementById("vert-elements").value);
@@ -69,15 +67,17 @@ export function loadVerticalsDesigner() {
             spacingMeters: spacing
         };
 
-        const result = await ModelingEngine.solve(geometry, {});
+        const result = await BoostEngine.solve(geometry, {});
 
         PlotEngine.renderElevation("vert-elev", result.elevation);
         PlotEngine.renderAzimuth("vert-az", result.azimuth);
         PlotEngine.renderSWR("vert-swr", result.swr);
         PlotEngine.renderGain("vert-gain", result.gain);
         PlotEngine.renderERP("vert-erp", result.erp);
-    });
+    };
+
+    document.getElementById("vert-compute").addEventListener("click", compute);
 
     // Auto-run once on load
-    btn.click();
+    compute();
 }
