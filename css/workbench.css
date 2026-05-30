@@ -1,100 +1,36 @@
-/* /HF-Workbench/css/workbench.css */
-
-/* Vertical DX Designer layout */
-.vdx-wrapper {
-    padding: 16px;
-}
-
-.vdx-layout {
+/* Top bar layout improvements */
+.topbar {
     display: flex;
-    gap: 24px;
-    align-items: flex-start;
-}
-
-.vdx-column {
-    flex: 1;
-    min-width: 0;
-}
-
-.vdx-inputs {
-    max-width: 420px;
-}
-
-.vdx-field {
-    margin-bottom: 10px;
-    display: flex;
-    flex-direction: column;
-}
-
-.vdx-field label {
-    font-size: 0.9rem;
-    margin-bottom: 4px;
-}
-
-.vdx-field input,
-.vdx-field select {
-    padding: 6px 8px;
-    font-size: 0.9rem;
-}
-
-.vdx-checkbox label {
-    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
+    padding: 0.75rem 1rem;       /* more vertical + horizontal space */
+    gap: 1rem;                   /* spacing between left and right groups */
 }
 
-.vdx-group {
-    border: 1px solid #444;
-    padding: 8px 10px;
-    margin-bottom: 10px;
+/* Left and right link groups */
+.topbar .left-links,
+.topbar .right-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;                   /* spacing between items */
 }
 
-.vdx-group legend {
-    padding: 0 4px;
-    font-size: 0.85rem;
+/* All header links */
+.topbar a {
+    text-decoration: none;
+    color: #0077cc;
+    font-size: 1rem;
+    padding: 0.25rem 0.5rem;     /* breathing room around text */
 }
 
-.vdx-button {
-    margin-top: 8px;
-    padding: 8px 12px;
-    font-size: 0.95rem;
-    cursor: pointer;
+/* Dropdown buttons */
+.dropdown-btn {
+    padding: 0.35rem 0.75rem;
+    margin-right: 0.5rem;
 }
 
-/* Results table: T2 + T3 hybrid (bordered + striped) */
-.vdx-results-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-    margin-top: 8px;
-}
-
-.vdx-results-table th,
-.vdx-results-table td {
-    border: 1px solid #555;
-    padding: 6px 8px;
-    text-align: left;
-}
-
-.vdx-results-table thead {
-    background-color: #222;
-}
-
-.vdx-results-table tbody tr:nth-child(odd) {
-    background-color: #1a1a1a;
-}
-
-.vdx-results-table tbody tr:nth-child(even) {
-    background-color: #111;
-}
-
-/* Hybrid layout: two-column desktop, single-column mobile */
-@media (max-width: 768px) {
-    .vdx-layout {
-        flex-direction: column;
-    }
-
-    .vdx-inputs {
-        max-width: 100%;
-    }
+/* Dropdown content spacing */
+.dropdown-content a {
+    padding: 0.5rem 0.75rem;
+    display: block;
 }
