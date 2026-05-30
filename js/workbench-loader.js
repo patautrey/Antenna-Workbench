@@ -1,6 +1,6 @@
 // /HF-Workbench/js/workbench-loader.js
 // Master loader + router for HF Workbench
-// Matches your current HTML structure exactly
+// Matches your current HTML and your actual module filenames
 
 // ------------------------------------------------------------
 // ROUTER
@@ -10,26 +10,26 @@ function loadRoute() {
 
     switch (hash) {
 
-        // Core modules
+        // Core modules (match your actual filenames)
         case "#doublet":
-            import("./modules/doublet.js").then(m => m.loadDoubletDesigner());
+            import("./modules/doublet-designer.js").then(m => m.loadDoubletDesigner());
             break;
 
         case "#loop":
-            import("./modules/loop.js").then(m => m.loadLoopDesigner());
+            import("./modules/loop-designer.js").then(m => m.loadLoopDesigner());
             break;
 
         case "#skyloop":
-            import("./modules/skyloop.js").then(m => m.loadSkyloopDesigner());
+            import("./modules/skyloop-designer.js").then(m => m.loadSkyloopDesigner());
             break;
 
-        // Vertical family
+        // Vertical family (match your actual filenames)
         case "#vertical-dx":
             import("./modules/vertical-dx.js").then(m => m.loadVerticalDXDesigner());
             break;
 
         case "#vertical-nvis":
-            import("./modules/vertical-nvis.js").then(m => m.loadVerticalNVISDesigner());
+            import("./modules/vertical-nvis-designer.js").then(m => m.loadVerticalNVISDesigner());
             break;
 
         case "#performer":
