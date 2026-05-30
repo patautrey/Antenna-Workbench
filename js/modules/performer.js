@@ -1,199 +1,114 @@
 // /HF-Workbench/js/modules/performer.js
-// Full Performer Vertical Designer with automatic plots (Elevation, Azimuth, Gain, SWR, ERP)
+// Performer Vertical — high-efficiency single-element vertical
+// BoostEngine + PlotEngine
 
-import { computeBoostEngine } from "../boost-engine.js";
+import { BoostEngine } from "../boost-engine.js";
 import { PlotEngine } from "../plot-engine.js";
 
-export function loadPerformerDesigner() {
+export function loadPerformerVertical() {
     const container = document.querySelector("#content");
     if (!container) return;
 
     container.innerHTML = `
-        <section class="performer-wrapper">
-            <h2>Performer Vertical Designer</h2>
+        <section class="designer-wrapper">
+            <h1>Performer Vertical</h1>
 
-            <div class="performer-layout">
-                <!-- INPUT COLUMN -->
-                <div class="performer-column performer-inputs">
-                    <h3>Inputs</h3>
+            <div class="designer-layout">
+                <div class="designer-inputs">
+                    <h2>Performer Parameters</h2>
 
-                    <div class="performer-field">
-                        <label for="perf-frequency">Frequency (MHz)</label>
-                        <input type="number" id="perf-frequency" min="1" max="60" step="0.1" value="14.2">
-                    </div>
+                    <label>
+                        Frequency (MHz)
+                        <input id="perf-freq" type="number" value="14.1" step="0.1">
+                    </label>
 
-                    <div class="performer-field">
-                        <label for="perf-height">Vertical Height (m)</label>
-                        <input type="number" id="perf-height" min="1" max="30" step="0.1" value="10">
-                    </div>
+                    <label>
+                        Height (m)
+                        <input id="perf-height" type="number" value="12" step="0.25">
+                    </label>
 
-                    <div class="performer-field">
-                        <label for="perf-radials">Radial Count</label>
-                        <input type="number" id="perf-radials" min="0" max="120" step="1" value="32">
-                    </div>
+                    <label>
+                        Base Loading (µH)
+                        <input id="perf-load" type="number" value="0" step="0.1">
+                    </label>
 
-                    <div class="performer-field">
-                        <label for="perf-radial-length">Radial Length (m)</label>
-                        <input type="number" id="perf-radial-length" min="1" max="40" step="0.1" value="10">
-                    </div>
+                    <label>
+                        Radials
+                        <input id="perf-radials" type="number" value="32" min="0" max="120">
+                    </label>
 
-                    <div class="performer-field">
-                        <label for="perf-mount">Mount Type</label>
-                        <select id="perf-mount">
-                            <option value="ground">Ground Mounted</option>
-                            <option value="elevated">Elevated (≥ 2m)</option>
+                    <label>
+                        Ground Type
+                        <select id="perf-ground">
+                            <option value="good">Good soil</option>
+                            <option value="average" selected>Average soil</option>
+                            <option value="poor">Poor soil</option>
+                            <option value="saltwater">Saltwater</option>
                         </select>
-                    </div>
+                    </label>
 
-                    <div class="performer-field">
-                        <label for="perf-time">Time of Day</label>
-                        <select id="perf-time">
-                            <option value="day">Day</option>
-                            <option value="night">Night</option>
-                            <option value="dawn">Dawn</option>
-                            <option value="dusk">Dusk</option>
-                        </select>
-                    </div>
-
-                    <div class="performer-field performer-checkbox">
-                        <label>
-                            <input type="checkbox" id="perf-seaside">
-                            Near Seaside (≤ 1λ from shoreline)
-                        </label>
-                    </div>
-
-                    <fieldset class="performer-group">
-                        <legend>Loading Coil</legend>
-                        <div class="performer-field performer-checkbox">
-                            <label>
-                                <input type="checkbox" id="perf-coil-enabled">
-                                Enable Loading Coil
-                            </label>
-                        </div>
-                        <div class="performer-field">
-                            <label for="perf-coil-position">Coil Position</label>
-                            <select id="perf-coil-position">
-                                <option value="base">Base</option>
-                                <option value="mid">Mid</option>
-                                <option value="top">Top</option>
-                            </select>
-                        </div>
-                    </fieldset>
-
-                    <fieldset class="performer-group">
-                        <legend>Capacitance Hat</legend>
-                        <div class="performer-field performer-checkbox">
-                            <label>
-                                <input type="checkbox" id="perf-cap-enabled">
-                                Enable Capacitance Hat
-                            </label>
-                        </div>
-                        <div class="performer-field">
-                            <label for="perf-cap-size">Hat Size</label>
-                            <select id="perf-cap-size">
-                                <option value="small">Small</option>
-                                <option value="medium">Medium</option>
-                                <option value="large">Large</option>
-                            </select>
-                        </div>
-                    </fieldset>
-
-                    <button id="perf-compute" class="performer-button">Compute Performer Vertical</button>
+                    <button id="perf-compute">Compute Performer</button>
                 </div>
 
-                <!-- RESULTS COLUMN -->
-                <div class="performer-column performer-results">
-                    <h3>Results</h3>
-                    <table class="performer-results-table">
-                        <thead>
-                            <tr><th>Metric</th><th>Value</th></tr>
-                        </thead>
-                        <tbody id="perf-results-body">
-                            <tr><td>DX Boost</td><td>—</td></tr>
-                            <tr><td>NVIS Boost</td><td>—</td></tr>
-                            <tr><td>TOA Shift</td><td>—</td></tr>
-                            <tr><td>Efficiency</td><td>—</td></tr>
-                            <tr><td>F/B</td><td>—</td></tr>
-                            <tr><td>F/S</td><td>—</td></tr>
-                            <tr><td>Height Fraction</td><td>—</td></tr>
-                            <tr><td>Effective Height Fraction</td><td>—</td></tr>
-                        </tbody>
-                    </table>
+                <div class="designer-plots">
+                    <h2>Radiation Patterns</h2>
+                    <canvas id="perf-elev" width="400" height="400"></canvas>
+                    <canvas id="perf-az" width="400" height="400"></canvas>
 
-                    <h3>Plots</h3>
-                    <div id="plot-elevation" class="performer-plot"></div>
-                    <div id="plot-azimuth" class="performer-plot"></div>
-                    <div id="plot-gain" class="performer-plot"></div>
-                    <div id="plot-swr" class="performer-plot"></div>
-                    <div id="plot-erp" class="performer-plot"></div>
+                    <h2>Band Performance</h2>
+                    <canvas id="perf-swr" width="400" height="250"></canvas>
+                    <canvas id="perf-gain" width="400" height="250"></canvas>
+                    <canvas id="perf-erp" width="400" height="250"></canvas>
+
+                    <div class="designer-metrics">
+                        <h2>Efficiency Metrics</h2>
+                        <div id="perf-metrics"></div>
+                    </div>
                 </div>
             </div>
         </section>
     `;
 
-    const btn = document.querySelector("#perf-compute");
-    if (!btn) return;
+    const compute = async () => {
+        const freq = parseFloat(document.getElementById("perf-freq").value);
+        const height = parseFloat(document.getElementById("perf-height").value);
+        const load = parseFloat(document.getElementById("perf-load").value);
+        const radials = parseInt(document.getElementById("perf-radials").value);
+        const ground = document.getElementById("perf-ground").value;
 
-    btn.addEventListener("click", () => {
-        const frequencyMHz = parseFloat(document.querySelector("#perf-frequency").value) || 14.2;
-        const heightMeters = parseFloat(document.querySelector("#perf-height").value) || 10;
-        const radialCount = parseInt(document.querySelector("#perf-radials").value) || 32;
-        const radialLength = parseFloat(document.querySelector("#perf-radial-length").value) || 10;
-        const mountType = document.querySelector("#perf-mount").value;
-
-        const timeOfDay = document.querySelector("#perf-time").value;
-        const seaside = document.querySelector("#perf-seaside").checked;
-
-        const coilEnabled = document.querySelector("#perf-coil-enabled").checked;
-        const coilPosition = document.querySelector("#perf-coil-position").value;
-
-        const capEnabled = document.querySelector("#perf-cap-enabled").checked;
-        const capSize = document.querySelector("#perf-cap-size").value;
-
-        const boost = computeBoostEngine({
-            frequencyMHz,
-            heightMeters,
-            reflectorSpacingMeters: 0,
-            directorSpacingMeters: 0,
-            foldoverAngleDeg: 0,
-            loadingCoil: { enabled: coilEnabled, position: coilPosition },
-            capHat: { enabled: capEnabled, size: capSize },
-            linearLoading: { enabled: false, style: "folded" },
-            environment: { timeOfDay, seaside }
-        });
-
-        const tbody = document.querySelector("#perf-results-body");
-        tbody.innerHTML = `
-            <tr><td>DX Boost</td><td>${boost.dxBoost.toFixed(1)} dB</td></tr>
-            <tr><td>NVIS Boost</td><td>${boost.nvisBoost.toFixed(1)} dB</td></tr>
-            <tr><td>TOA Shift</td><td>${boost.toaShiftDeg.toFixed(1)}°</td></tr>
-            <tr><td>Efficiency</td><td>${boost.efficiency.toFixed(2)}</td></tr>
-            <tr><td>F/B</td><td>${boost.fb.toFixed(1)} dB</td></tr>
-            <tr><td>F/S</td><td>${boost.fs.toFixed(1)} dB</td></tr>
-            <tr><td>Height Fraction</td><td>${boost.heightFraction.toFixed(3)} λ</td></tr>
-            <tr><td>Effective Height Fraction</td><td>${boost.effectiveHeightFraction.toFixed(3)} λ</td></tr>
-        `;
-
-        // Dummy antennaData for now — real modeling comes later
-        const antennaData = {
-            elevationAngles: [...Array(91).keys()],
-            elevationGain: [...Array(91).keys()].map(a => Math.sin(a * Math.PI / 180) * 5.5),
-
-            azimuthAngles: [...Array(361).keys()],
-            azimuthGain: [...Array(361).keys()].map(a => 3 + Math.cos(a * Math.PI / 180) * 2.2),
-
-            freqSweep: [frequencyMHz - 0.2, frequencyMHz, frequencyMHz + 0.2],
-            gainSweep: [3, 4, 3],
-            swrSweep: [1.9, 1.3, 2.0],
-            erpSweep: [110, 140, 115]
+        const geometry = {
+            type: "performer-vertical",
+            frequencyMHz: freq,
+            heightMeters: height,
+            baseLoadingMicroH: load,
+            radialCount: radials,
+            groundModel: ground
         };
 
-        PlotEngine.renderAll(antennaData, boost);
-    });
-}
+        const result = await BoostEngine.solve(geometry, {});
 
-document.addEventListener("DOMContentLoaded", () => {
-    if (window.location.hash === "#performer") {
-        loadPerformerDesigner();
-    }
-});
+        PlotEngine.renderElevation("perf-elev", result.elevation);
+        PlotEngine.renderAzimuth("perf-az", result.azimuth);
+        PlotEngine.renderSWR("perf-swr", result.swr);
+        PlotEngine.renderGain("perf-gain", result.gain);
+        PlotEngine.renderERP("perf-erp", result.erp);
+
+        renderMetrics(result);
+    };
+
+    const renderMetrics = (result) => {
+        const div = document.getElementById("perf-metrics");
+        if (!div) return;
+
+        const eff = result.efficiency ?? 0.0;
+        const takeoff = result.elevation?.takeoffAngleDeg ?? 20;
+
+        div.innerHTML = `
+            <p><strong>Radiation Efficiency:</strong> ${(eff * 100).toFixed(1)}%</p>
+            <p><strong>Takeoff Angle:</strong> ${takeoff.toFixed(1)}°</p>
+        `;
+    };
+
+    document.getElementById("perf-compute").addEventListener("click", compute);
+    compute();
+}
