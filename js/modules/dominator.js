@@ -1,111 +1,189 @@
-// /HF-Workbench/js/modules/dominator.js
-// Dominator Array — multi-element phased vertical array
-// BoostEngine + PlotEngine
+/* ---------------------------------------------------------
+   Antenna Workbench — Dominator Array
+   Multi-element phased vertical array + boost controls
+--------------------------------------------------------- */
 
+import { wavelength } from "../utils.js";
+import { requireFrequency, requirePositive, toNumber } from "../validators.js";
+import { infoBox, warnBox } from "../dom.js";
+import { findBand } from "../constants.js";
+import { log } from "../log.js";
 import { BoostEngine } from "../boost-engine.js";
-import { PlotEngine } from "../plot-engine.js";
 
-export function loadDominatorArray() {
-    const container = document.querySelector("#content");
-    if (!container) return;
+function $(root, sel) { return root.querySelector(sel); }
 
-    container.innerHTML = `
-        <section class="designer-wrapper">
-            <h1>Dominator Array</h1>
+function computeArrayGain(freqMHz, elements, spacingM, phaseDeg, heightM, radialCount, groundType) {
+    const lambda = wavelength(freqMHz);
+    const frac = heightM / lambda;
 
-            <div class="designer-layout">
-                <div class="designer-inputs">
-                    <h2>Array Parameters</h2>
+    // base single-vertical gain
+    let baseSingle = 1.5;
+    if (groundType === "good") baseSingle += 0.8;
+    if (groundType === "poor") baseSingle -= 0.8;
+    if (groundType === "saltwater") baseSingle += 2.0;
 
-                    <label>
-                        Frequency (MHz)
-                        <input id="dom-freq" type="number" value="14.1" step="0.1">
-                    </label>
+    const radialFactor = Math.log10(Math.max(1, radialCount)) * 1.2;
+    baseSingle += radialFactor;
 
-                    <label>
-                        Elements
-                        <input id="dom-elements" type="number" value="2" min="2" max="8">
-                    </label>
+    // array factor approximation
+    const nGain = 10 * Math.log10(Math.max(1, elements));
+    const spacingLambda = spacingM / lambda;
+    const phaseNorm = Math.abs(phaseDeg) / 90;
+    const directivityBonus = Math.min(3, spacingLambda * 3 * phaseNorm);
 
-                    <label>
-                        Spacing (m)
-                        <input id="dom-spacing" type="number" value="10" step="0.5">
-                    </label>
+    const arrayGain = baseSingle + nGain + directivityBonus;
 
-                    <label>
-                        Phase Shift (°)
-                        <input id="dom-phase" type="number" value="90" step="5">
-                    </label>
+    const toa = Math.max(5, 20 - (frac - 0.25) * 40);
 
-                    <label>
-                        Height (m)
-                        <input id="dom-height" type="number" value="10" step="0.25">
-                    </label>
+    return {
+        lambda,
+        frac,
+        baseSingle,
+        arrayGain,
+        spacingLambda,
+        toa
+    };
+}
 
-                    <button id="dom-compute">Compute Dominator</button>
-                </div>
+/* ---------------------------------------------------------
+   EXPORT DEFAULT
+--------------------------------------------------------- */
+export default function initDominator(root) {
+    if (!root) return;
 
-                <div class="designer-plots">
-                    <h2>Radiation Patterns</h2>
-                    <canvas id="dom-elev" width="400" height="400"></canvas>
-                    <canvas id="dom-az" width="400" height="400"></canvas>
+    root.innerHTML = `
+        <section class="tool">
+            <h2>Dominator Array</h2>
 
-                    <h2>Band Performance</h2>
-                    <canvas id="dom-swr" width="400" height="250"></canvas>
-                    <canvas id="dom-gain" width="400" height="250"></canvas>
-                    <canvas id="dom-erp" width="400" height="250"></canvas>
+            <div class="field-grid">
+                <label>Frequency (MHz)
+                    <input id="dom-freq" type="number" step="0.01" value="14.1">
+                </label>
 
-                    <div class="designer-metrics">
-                        <h2>Array Metrics</h2>
-                        <div id="dom-metrics"></div>
-                    </div>
-                </div>
+                <label>Elements
+                    <input id="dom-elements" type="number" value="2" min="2" max="8">
+                </label>
+
+                <label>Spacing (m)
+                    <input id="dom-spacing" type="number" step="0.1" value="10">
+                </label>
+
+                <label>Phase Shift (°)
+                    <input id="dom-phase" type="number" step="5" value="90">
+                </label>
+
+                <label>Height (m)
+                    <input id="dom-height" type="number" step="0.1" value="10">
+                </label>
+
+                <label>Radial Count (per element)
+                    <input id="dom-radials" type="number" value="8">
+                </label>
             </div>
+
+            <label>Ground Type
+                <select id="dom-ground">
+                    <option value="good">Good soil</option>
+                    <option value="average" selected>Average soil</option>
+                    <option value="poor">Poor soil</option>
+                    <option value="saltwater">Saltwater</option>
+                </select>
+            </label>
+
+            <h3 style="margin-top:1rem;">Boost Controls</h3>
+            <div class="field-grid">
+                <label><input id="dom-boost-groundscreen" type="checkbox"> Ground screen</label>
+                <label><input id="dom-boost-elevated" type="checkbox"> Elevated radials</label>
+                <label><input id="dom-boost-saltwater" type="checkbox"> Saltwater enhancement</label>
+                <label><input id="dom-boost-dxturbo" type="checkbox"> 0.70λ DX Turbo</label>
+            </div>
+
+            <button id="dom-compute" style="margin-top:1rem;">Compute Dominator Array</button>
+
+            <div id="dom-summary" class="summary" style="margin-top:1rem;"></div>
         </section>
     `;
 
-    const compute = async () => {
-        const freq = parseFloat(document.getElementById("dom-freq").value);
-        const elements = parseInt(document.getElementById("dom-elements").value);
-        const spacing = parseFloat(document.getElementById("dom-spacing").value);
-        const phase = parseFloat(document.getElementById("dom-phase").value);
-        const height = parseFloat(document.getElementById("dom-height").value);
+    const freqInput = $("#dom-freq");
+    const elementsInput = $("#dom-elements");
+    const spacingInput = $("#dom-spacing");
+    const phaseInput = $("#dom-phase");
+    const heightInput = $("#dom-height");
+    const radialsInput = $("#dom-radials");
+    const groundSelect = $("#dom-ground");
 
-        const geometry = {
-            type: "dominator-array",
-            frequencyMHz: freq,
-            elements: elements,
-            spacingMeters: spacing,
-            phaseShiftDeg: phase,
-            heightMeters: height
-        };
+    const boostGroundScreen = $("#dom-boost-groundscreen");
+    const boostElevated = $("#dom-boost-elevated");
+    const boostSaltwater = $("#dom-boost-saltwater");
+    const boostDxTurbo = $("#dom-boost-dxturbo");
 
-        const result = await BoostEngine.solve(geometry, {});
+    const summaryDiv = $("#dom-summary");
+    const button = $("#dom-compute");
 
-        PlotEngine.renderElevation("dom-elev", result.elevation);
-        PlotEngine.renderAzimuth("dom-az", result.azimuth);
-        PlotEngine.renderSWR("dom-swr", result.swr);
-        PlotEngine.renderGain("dom-gain", result.gain);
-        PlotEngine.renderERP("dom-erp", result.erp);
+    button.addEventListener("click", () => {
+        const errors = [];
 
-        renderMetrics(result);
-    };
+        const freq = toNumber(freqInput.value);
+        const elements = toNumber(elementsInput.value);
+        const spacing = toNumber(spacingInput.value);
+        const phase = toNumber(phaseInput.value);
+        const height = toNumber(heightInput.value);
+        const radials = toNumber(radialsInput.value);
+        const ground = groundSelect.value;
 
-    const renderMetrics = (result) => {
-        const div = document.getElementById("dom-metrics");
-        if (!div) return;
+        requireFrequency(freq, errors);
+        requirePositive(elements, "Elements", errors);
+        requirePositive(spacing, "Spacing", errors);
+        requirePositive(height, "Height", errors);
+        requirePositive(radials, "Radial count", errors);
 
-        const fwdGain = result.azimuth?.maxGainDb ?? 0;
-        const fwdDir = result.azimuth?.maxGainDirectionDeg ?? 0;
-        const bw = result.azimuth?.beamwidthDeg ?? 360;
+        if (errors.length) {
+            summaryDiv.innerHTML = warnBox(errors.join("<br>"));
+            return;
+        }
 
-        div.innerHTML = `
-            <p><strong>Forward Gain:</strong> ${fwdGain.toFixed(1)} dBi</p>
-            <p><strong>Forward Direction:</strong> ${fwdDir.toFixed(0)}°</p>
-            <p><strong>Beamwidth:</strong> ${bw.toFixed(0)}°</p>
-        `;
-    };
+        const band = findBand(freq);
+        const base = computeArrayGain(freq, elements, spacing, phase, height, radials, ground);
 
-    document.getElementById("dom-compute").addEventListener("click", compute);
-    compute();
+        const boost = BoostEngine.computeBoost({
+            groundScreen: boostGroundScreen.checked,
+            elevatedRadials: boostElevated.checked,
+            saltwater: boostSaltwater.checked,
+            dxTurbo: boostDxTurbo.checked
+        });
+
+        const totalGain = base.arrayGain + boost.totalBoost;
+
+        log("Dominator Array", {
+            freq,
+            elements,
+            spacing,
+            phase,
+            height,
+            radials,
+            ground,
+            base,
+            boost
+        });
+
+        const boostLines = boost.details.length
+            ? boost.details.map(d => `+${d.boost.toFixed(1)} dB from ${d.label}`).join("<br>")
+            : "No boost options enabled.";
+
+        summaryDiv.innerHTML = infoBox(`
+            <p><strong>Design frequency:</strong> ${freq.toFixed(2)} MHz (${band?.label ?? "Unknown band"})</p>
+            <p><strong>Elements:</strong> ${elements}</p>
+            <p><strong>Spacing:</strong> ${spacing.toFixed(1)} m (${base.spacingLambda.toFixed(2)} λ)</p>
+            <p><strong>Phase shift:</strong> ${phase.toFixed(0)}°</p>
+            <p><strong>Height:</strong> ${height.toFixed(1)} m (${(base.frac * 100).toFixed(1)}% of λ)</p>
+            <p><strong>Radials per element:</strong> ${radials}</p>
+            <p><strong>Ground type:</strong> ${ground}</p>
+            <p><strong>Single-element base gain:</strong> ${base.baseSingle.toFixed(1)} dBi</p>
+            <p><strong>Array gain (before boost):</strong> ${base.arrayGain.toFixed(1)} dBi</p>
+            <p><strong>Total boost:</strong> +${boost.totalBoost.toFixed(1)} dB</p>
+            <p><strong>Boost breakdown:</strong><br>${boostLines}</p>
+            <p><strong>Estimated array DX gain:</strong> ${totalGain.toFixed(1)} dBi</p>
+            <p><strong>Estimated TOA:</strong> ${base.toa.toFixed(0)}°</p>
+        `);
+    });
 }
