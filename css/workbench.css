@@ -1,72 +1,100 @@
-body {
-    background: #111;
-    color: #eee;
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
+/* /HF-Workbench/css/workbench.css */
+
+/* Vertical DX Designer layout */
+.vdx-wrapper {
+    padding: 16px;
 }
 
-header {
-    background: #222;
-    padding: 20px;
-    text-align: center;
-    border-bottom: 2px solid #444;
-}
-
-#tabs {
+.vdx-layout {
     display: flex;
-    background: #181818;
-    border-bottom: 2px solid #333;
+    gap: 24px;
+    align-items: flex-start;
 }
 
-#tabs button {
+.vdx-column {
     flex: 1;
-    padding: 12px;
-    background: #181818;
-    color: #ccc;
-    border: none;
-    cursor: pointer;
+    min-width: 0;
 }
 
-#tabs button:hover {
-    background: #333;
-    color: #fff;
+.vdx-inputs {
+    max-width: 420px;
 }
 
-.tab {
-    display: none;
-    padding: 20px;
+.vdx-field {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
 }
 
-label {
-    display: block;
-    margin: 8px 0;
+.vdx-field label {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
 }
 
-input, select {
-    padding: 6px;
-    margin-left: 10px;
-    background: #222;
-    color: #eee;
+.vdx-field input,
+.vdx-field select {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+}
+
+.vdx-checkbox label {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.vdx-group {
     border: 1px solid #444;
+    padding: 8px 10px;
+    margin-bottom: 10px;
 }
 
-button {
-    margin-top: 15px;
-    padding: 10px 20px;
-    background: #0066cc;
-    color: #fff;
-    border: none;
+.vdx-group legend {
+    padding: 0 4px;
+    font-size: 0.85rem;
+}
+
+.vdx-button {
+    margin-top: 8px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
     cursor: pointer;
 }
 
-button:hover {
-    background: #0080ff;
+/* Results table: T2 + T3 hybrid (bordered + striped) */
+.vdx-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-top: 8px;
 }
 
-.summary {
-    margin-top: 20px;
-    padding: 15px;
-    background: #1a1a1a;
-    border: 1px solid #333;
+.vdx-results-table th,
+.vdx-results-table td {
+    border: 1px solid #555;
+    padding: 6px 8px;
+    text-align: left;
+}
+
+.vdx-results-table thead {
+    background-color: #222;
+}
+
+.vdx-results-table tbody tr:nth-child(odd) {
+    background-color: #1a1a1a;
+}
+
+.vdx-results-table tbody tr:nth-child(even) {
+    background-color: #111;
+}
+
+/* Hybrid layout: two-column desktop, single-column mobile */
+@media (max-width: 768px) {
+    .vdx-layout {
+        flex-direction: column;
+    }
+
+    .vdx-inputs {
+        max-width: 100%;
+    }
 }
