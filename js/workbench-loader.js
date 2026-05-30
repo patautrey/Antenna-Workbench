@@ -1,8 +1,7 @@
 // /HF-Workbench/js/workbench-loader.js
 // Master loader + router for HF Workbench
-// Matches your current HTML exactly (dropdown-btn, dropdown-content)
+// Matches your current HTML structure exactly
 
-//
 // ------------------------------------------------------------
 // ROUTER
 // ------------------------------------------------------------
@@ -34,11 +33,11 @@ function loadRoute() {
             break;
 
         case "#performer":
-            import("./modules/verticals.js").then(m => m.loadVerticalsDesigner());
+            import("./modules/performer.js").then(m => m.loadPerformerVertical());
             break;
 
         case "#dominator":
-            import("./modules/verticals.js").then(m => m.loadVerticalsDesigner());
+            import("./modules/dominator.js").then(m => m.loadDominatorArray());
             break;
 
         // Default home screen
@@ -53,7 +52,6 @@ function loadRoute() {
     }
 }
 
-//
 // ------------------------------------------------------------
 // DROPDOWN WIRING — matches your HTML exactly
 // ------------------------------------------------------------
@@ -82,7 +80,6 @@ function wireDropdowns() {
     });
 }
 
-//
 // ------------------------------------------------------------
 // INITIALIZE
 // ------------------------------------------------------------
