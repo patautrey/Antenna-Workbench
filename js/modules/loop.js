@@ -1,7 +1,7 @@
 // /HF-Workbench/js/modules/loop.js
-// Loop Designer module with ModelingEngine + PlotEngine
+// Loop Designer with BoostEngine + PlotEngine
 
-import { ModelingEngine } from "../modeling-engine.js";
+import { BoostEngine } from "../boost-engine.js";
 import { PlotEngine } from "../plot-engine.js";
 
 export function loadLoopDesigner() {
@@ -48,9 +48,7 @@ export function loadLoopDesigner() {
         </section>
     `;
 
-    const btn = document.getElementById("loop-compute");
-
-    btn.addEventListener("click", async () => {
+    const compute = async () => {
         const freq = parseFloat(document.getElementById("loop-freq").value);
         const perim = parseFloat(document.getElementById("loop-perim").value);
         const height = parseFloat(document.getElementById("loop-height").value);
@@ -65,15 +63,17 @@ export function loadLoopDesigner() {
             heightMeters: height
         };
 
-        const result = await ModelingEngine.solve(geometry, {});
+        const result = await BoostEngine.solve(geometry, {});
 
         PlotEngine.renderElevation("loop-elev", result.elevation);
         PlotEngine.renderAzimuth("loop-az", result.azimuth);
         PlotEngine.renderSWR("loop-swr", result.swr);
         PlotEngine.renderGain("loop-gain", result.gain);
         PlotEngine.renderERP("loop-erp", result.erp);
-    });
+    };
+
+    document.getElementById("loop-compute").addEventListener("click", compute);
 
     // Auto-run once on load
-    btn.click();
+    compute();
 }
