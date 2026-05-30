@@ -1,7 +1,7 @@
 // /HF-Workbench/js/modules/doublet.js
-// Doublet Designer module with ModelingEngine + PlotEngine
+// Doublet Designer with BoostEngine + PlotEngine
 
-import { ModelingEngine } from "../modeling-engine.js";
+import { BoostEngine } from "../boost-engine.js";
 import { PlotEngine } from "../plot-engine.js";
 
 export function loadDoubletDesigner() {
@@ -44,8 +44,7 @@ export function loadDoubletDesigner() {
         </section>
     `;
 
-    const btn = document.getElementById("dbl-compute");
-    btn.addEventListener("click", async () => {
+    const compute = async () => {
         const freq = parseFloat(document.getElementById("dbl-freq").value);
         const length = parseFloat(document.getElementById("dbl-length").value);
         const height = parseFloat(document.getElementById("dbl-height").value);
@@ -57,15 +56,17 @@ export function loadDoubletDesigner() {
             heightMeters: height
         };
 
-        const result = await ModelingEngine.solve(geometry, {});
+        const result = await BoostEngine.solve(geometry, {});
 
         PlotEngine.renderElevation("dbl-elev", result.elevation);
         PlotEngine.renderAzimuth("dbl-az", result.azimuth);
         PlotEngine.renderSWR("dbl-swr", result.swr);
         PlotEngine.renderGain("dbl-gain", result.gain);
         PlotEngine.renderERP("dbl-erp", result.erp);
-    });
+    };
 
-    // Auto-compute once on load
-    btn.click();
+    document.getElementById("dbl-compute").addEventListener("click", compute);
+
+    // Auto-run once on load
+    compute();
 }
