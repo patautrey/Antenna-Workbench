@@ -5,10 +5,11 @@ export default function initLoopDesigner(root) {
     if (!root) return;
 
     root.innerHTML = `
-        <section class="tool">
-            <h2>Horizontal Loop Designer</h2>
+        <section class="tool" style="line-height: 1.45;">
 
-            <div class="field-grid">
+            <h2 style="margin-bottom: 1rem;">Horizontal Loop Designer</h2>
+
+            <div class="field-grid" style="row-gap: 1rem; margin-bottom: 1.5rem;">
                 <label>Frequency (MHz)
                     <input id="loop-freq" type="number" step="0.01" value="3.55">
                 </label>
@@ -22,16 +23,16 @@ export default function initLoopDesigner(root) {
                 </label>
             </div>
 
-            <h3>NVIS Reflector (Optional)</h3>
+            <h3 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">NVIS Reflector (Optional)</h3>
 
-            <label>NVIS Reflector?
+            <label style="display:block; margin-bottom: 1rem;">NVIS Reflector?
                 <select id="loop-refl-enabled">
                     <option value="no" selected>No</option>
                     <option value="yes">Yes</option>
                 </select>
             </label>
 
-            <div class="field-grid">
+            <div class="field-grid" style="row-gap: 1rem; margin-bottom: 1.5rem;">
                 <label>Reflector Wires
                     <input id="loop-refl-num" type="number" value="0">
                 </label>
@@ -49,9 +50,14 @@ export default function initLoopDesigner(root) {
                 </label>
             </div>
 
-            <button id="loop-compute">Compute Loop</button>
+            <button id="loop-compute" style="margin-top: 1rem; margin-bottom: 1.5rem;">
+                Compute Loop
+            </button>
 
-            <div id="loop-summary" class="summary"></div>
+            <div id="loop-summary" class="summary" 
+                 style="margin-top: 1.5rem; padding: 1rem; border-radius: 6px;">
+            </div>
+
         </section>
     `;
 
@@ -90,7 +96,7 @@ export default function initLoopDesigner(root) {
             f >= 27.9 && f <= 29.8 ? "10m (28–29.7 MHz)" :
             "Unknown band";
 
-        const wavelength = 300 / (f || 1); // meters
+        const wavelength = 300 / (f || 1);
         const approxGain = 3 + Math.log10((p || 1) / wavelength) * 2;
         const toa = Math.max(5, Math.min(90, 90 - (h / wavelength) * 45));
 
@@ -100,12 +106,12 @@ export default function initLoopDesigner(root) {
         }
 
         summaryDiv.innerHTML = `
-            <p><strong>Design frequency:</strong> ${f.toFixed(2)} MHz (${band})</p>
-            <p><strong>Perimeter:</strong> ${p.toFixed(1)} m</p>
-            <p><strong>Height:</strong> ${h.toFixed(1)} m</p>
-            <p><strong>Estimated gain:</strong> ${approxGain.toFixed(1)} dBi</p>
-            <p><strong>Estimated TOA:</strong> ${toa.toFixed(0)}°</p>
-            <p>${reflText}</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Design frequency:</strong> ${f.toFixed(2)} MHz (${band})</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Perimeter:</strong> ${p.toFixed(1)} m</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Height:</strong> ${h.toFixed(1)} m</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Estimated gain:</strong> ${approxGain.toFixed(1)} dBi</p>
+            <p style="margin-bottom: 0.5rem;"><strong>Estimated TOA:</strong> ${toa.toFixed(0)}°</p>
+            <p style="margin-top: 0.75rem;">${reflText}</p>
         `;
     });
 }
