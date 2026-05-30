@@ -1,201 +1,111 @@
 // /HF-Workbench/js/modules/dominator.js
-// Full Dominator Array Designer with automatic plots (Elevation, Azimuth, Gain, SWR, ERP)
+// Dominator Array — multi-element phased vertical array
+// BoostEngine + PlotEngine
 
-import { computeBoostEngine } from "../boost-engine.js";
+import { BoostEngine } from "../boost-engine.js";
 import { PlotEngine } from "../plot-engine.js";
 
-export function loadDominatorDesigner() {
+export function loadDominatorArray() {
     const container = document.querySelector("#content");
     if (!container) return;
 
     container.innerHTML = `
-        <section class="dom-wrapper">
-            <h2>Dominator Vertical Array Designer</h2>
+        <section class="designer-wrapper">
+            <h1>Dominator Array</h1>
 
-            <div class="dom-layout">
-                <!-- INPUT COLUMN -->
-                <div class="dom-column dom-inputs">
-                    <h3>Inputs</h3>
+            <div class="designer-layout">
+                <div class="designer-inputs">
+                    <h2>Array Parameters</h2>
 
-                    <div class="dom-field">
-                        <label for="dom-frequency">Frequency (MHz)</label>
-                        <input type="number" id="dom-frequency" min="1" max="60" step="0.1" value="14.2">
-                    </div>
+                    <label>
+                        Frequency (MHz)
+                        <input id="dom-freq" type="number" value="14.1" step="0.1">
+                    </label>
 
-                    <div class="dom-field">
-                        <label for="dom-height">Element Height (m)</label>
-                        <input type="number" id="dom-height" min="1" max="30" step="0.1" value="10">
-                    </div>
+                    <label>
+                        Elements
+                        <input id="dom-elements" type="number" value="2" min="2" max="8">
+                    </label>
 
-                    <div class="dom-field">
-                        <label for="dom-elements">Number of Elements</label>
-                        <input type="number" id="dom-elements" min="1" max="8" step="1" value="3">
-                    </div>
+                    <label>
+                        Spacing (m)
+                        <input id="dom-spacing" type="number" value="10" step="0.5">
+                    </label>
 
-                    <div class="dom-field">
-                        <label for="dom-spacing">Element Spacing (m)</label>
-                        <input type="number" id="dom-spacing" min="0" max="40" step="0.1" value="5">
-                    </div>
+                    <label>
+                        Phase Shift (°)
+                        <input id="dom-phase" type="number" value="90" step="5">
+                    </label>
 
-                    <div class="dom-field">
-                        <label for="dom-phasing">Phasing</label>
-                        <select id="dom-phasing">
-                            <option value="broadside">Broadside</option>
-                            <option value="endfire">Endfire</option>
-                            <option value="cardioid">Cardioid</option>
-                            <option value="supergain">Supergain</option>
-                        </select>
-                    </div>
+                    <label>
+                        Height (m)
+                        <input id="dom-height" type="number" value="10" step="0.25">
+                    </label>
 
-                    <div class="dom-field">
-                        <label for="dom-time">Time of Day</label>
-                        <select id="dom-time">
-                            <option value="day">Day</option>
-                            <option value="night">Night</option>
-                            <option value="dawn">Dawn</option>
-                            <option value="dusk">Dusk</option>
-                        </select>
-                    </div>
-
-                    <div class="dom-field dom-checkbox">
-                        <label>
-                            <input type="checkbox" id="dom-seaside">
-                            Near Seaside (≤ 1λ from shoreline)
-                        </label>
-                    </div>
-
-                    <fieldset class="dom-group">
-                        <legend>Loading Coil</legend>
-                        <div class="dom-field dom-checkbox">
-                            <label>
-                                <input type="checkbox" id="dom-coil-enabled">
-                                Enable Loading Coil
-                            </label>
-                        </div>
-                        <div class="dom-field">
-                            <label for="dom-coil-position">Coil Position</label>
-                            <select id="dom-coil-position">
-                                <option value="base">Base</option>
-                                <option value="mid">Mid</option>
-                                <option value="top">Top</option>
-                            </select>
-                        </div>
-                    </fieldset>
-
-                    <fieldset class="dom-group">
-                        <legend>Capacitance Hat</legend>
-                        <div class="dom-field dom-checkbox">
-                            <label>
-                                <input type="checkbox" id="dom-cap-enabled">
-                                Enable Capacitance Hat
-                            </label>
-                        </div>
-                        <div class="dom-field">
-                            <label for="dom-cap-size">Hat Size</label>
-                            <select id="dom-cap-size">
-                                <option value="small">Small</option>
-                                <option value="medium">Medium</option>
-                                <option value="large">Large</option>
-                            </select>
-                        </div>
-                    </fieldset>
-
-                    <button id="dom-compute" class="dom-button">Compute Dominator Array</button>
+                    <button id="dom-compute">Compute Dominator</button>
                 </div>
 
-                <!-- RESULTS COLUMN -->
-                <div class="dom-column dom-results">
-                    <h3>Results</h3>
-                    <table class="dom-results-table">
-                        <thead>
-                            <tr><th>Metric</th><th>Value</th></tr>
-                        </thead>
-                        <tbody id="dom-results-body">
-                            <tr><td>DX Boost</td><td>—</td></tr>
-                            <tr><td>NVIS Boost</td><td>—</td></tr>
-                            <tr><td>TOA Shift</td><td>—</td></tr>
-                            <tr><td>Efficiency</td><td>—</td></tr>
-                            <tr><td>F/B</td><td>—</td></tr>
-                            <tr><td>F/S</td><td>—</td></tr>
-                            <tr><td>Height Fraction</td><td>—</td></tr>
-                            <tr><td>Effective Height Fraction</td><td>—</td></tr>
-                        </tbody>
-                    </table>
+                <div class="designer-plots">
+                    <h2>Radiation Patterns</h2>
+                    <canvas id="dom-elev" width="400" height="400"></canvas>
+                    <canvas id="dom-az" width="400" height="400"></canvas>
 
-                    <h3>Plots</h3>
-                    <div id="plot-elevation" class="dom-plot"></div>
-                    <div id="plot-azimuth" class="dom-plot"></div>
-                    <div id="plot-gain" class="dom-plot"></div>
-                    <div id="plot-swr" class="dom-plot"></div>
-                    <div id="plot-erp" class="dom-plot"></div>
+                    <h2>Band Performance</h2>
+                    <canvas id="dom-swr" width="400" height="250"></canvas>
+                    <canvas id="dom-gain" width="400" height="250"></canvas>
+                    <canvas id="dom-erp" width="400" height="250"></canvas>
+
+                    <div class="designer-metrics">
+                        <h2>Array Metrics</h2>
+                        <div id="dom-metrics"></div>
+                    </div>
                 </div>
             </div>
         </section>
     `;
 
-    const btn = document.querySelector("#dom-compute");
-    if (!btn) return;
+    const compute = async () => {
+        const freq = parseFloat(document.getElementById("dom-freq").value);
+        const elements = parseInt(document.getElementById("dom-elements").value);
+        const spacing = parseFloat(document.getElementById("dom-spacing").value);
+        const phase = parseFloat(document.getElementById("dom-phase").value);
+        const height = parseFloat(document.getElementById("dom-height").value);
 
-    btn.addEventListener("click", () => {
-        const frequencyMHz = parseFloat(document.querySelector("#dom-frequency").value) || 14.2;
-        const heightMeters = parseFloat(document.querySelector("#dom-height").value) || 10;
-        const elements = parseInt(document.querySelector("#dom-elements").value) || 3;
-        const spacing = parseFloat(document.querySelector("#dom-spacing").value) || 5;
-        const phasing = document.querySelector("#dom-phasing").value;
-
-        const timeOfDay = document.querySelector("#dom-time").value;
-        const seaside = document.querySelector("#dom-seaside").checked;
-
-        const coilEnabled = document.querySelector("#dom-coil-enabled").checked;
-        const coilPosition = document.querySelector("#dom-coil-position").value;
-
-        const capEnabled = document.querySelector("#dom-cap-enabled").checked;
-        const capSize = document.querySelector("#dom-cap-size").value;
-
-        const boost = computeBoostEngine({
-            frequencyMHz,
-            heightMeters,
-            reflectorSpacingMeters: spacing,
-            directorSpacingMeters: spacing,
-            foldoverAngleDeg: 0,
-            loadingCoil: { enabled: coilEnabled, position: coilPosition },
-            capHat: { enabled: capEnabled, size: capSize },
-            linearLoading: { enabled: false, style: "folded" },
-            environment: { timeOfDay, seaside }
-        });
-
-        const tbody = document.querySelector("#dom-results-body");
-        tbody.innerHTML = `
-            <tr><td>DX Boost</td><td>${boost.dxBoost.toFixed(1)} dB</td></tr>
-            <tr><td>NVIS Boost</td><td>${boost.nvisBoost.toFixed(1)} dB</td></tr>
-            <tr><td>TOA Shift</td><td>${boost.toaShiftDeg.toFixed(1)}°</td></tr>
-            <tr><td>Efficiency</td><td>${boost.efficiency.toFixed(2)}</td></tr>
-            <tr><td>F/B</td><td>${boost.fb.toFixed(1)} dB</td></tr>
-            <tr><td>F/S</td><td>${boost.fs.toFixed(1)} dB</td></tr>
-            <tr><td>Height Fraction</td><td>${boost.heightFraction.toFixed(3)} λ</td></tr>
-            <tr><td>Effective Height Fraction</td><td>${boost.effectiveHeightFraction.toFixed(3)} λ</td></tr>
-        `;
-
-        // Dummy antennaData for now — real modeling comes later
-        const antennaData = {
-            elevationAngles: [...Array(91).keys()],
-            elevationGain: [...Array(91).keys()].map(a => Math.sin(a * Math.PI / 180) * (5 + elements * 0.5)),
-
-            azimuthAngles: [...Array(361).keys()],
-            azimuthGain: [...Array(361).keys()].map(a => 3 + Math.cos(a * Math.PI / 180) * (2 + elements * 0.3)),
-
-            freqSweep: [frequencyMHz - 0.2, frequencyMHz, frequencyMHz + 0.2],
-            gainSweep: [3, 4 + elements * 0.5, 3],
-            swrSweep: [2.0, 1.4, 2.1],
-            erpSweep: [100, 140 + elements * 10, 110]
+        const geometry = {
+            type: "dominator-array",
+            frequencyMHz: freq,
+            elements: elements,
+            spacingMeters: spacing,
+            phaseShiftDeg: phase,
+            heightMeters: height
         };
 
-        PlotEngine.renderAll(antennaData, boost);
-    });
-}
+        const result = await BoostEngine.solve(geometry, {});
 
-document.addEventListener("DOMContentLoaded", () => {
-    if (window.location.hash === "#dominator") {
-        loadDominatorDesigner();
-    }
-});
+        PlotEngine.renderElevation("dom-elev", result.elevation);
+        PlotEngine.renderAzimuth("dom-az", result.azimuth);
+        PlotEngine.renderSWR("dom-swr", result.swr);
+        PlotEngine.renderGain("dom-gain", result.gain);
+        PlotEngine.renderERP("dom-erp", result.erp);
+
+        renderMetrics(result);
+    };
+
+    const renderMetrics = (result) => {
+        const div = document.getElementById("dom-metrics");
+        if (!div) return;
+
+        const fwdGain = result.azimuth?.maxGainDb ?? 0;
+        const fwdDir = result.azimuth?.maxGainDirectionDeg ?? 0;
+        const bw = result.azimuth?.beamwidthDeg ?? 360;
+
+        div.innerHTML = `
+            <p><strong>Forward Gain:</strong> ${fwdGain.toFixed(1)} dBi</p>
+            <p><strong>Forward Direction:</strong> ${fwdDir.toFixed(0)}°</p>
+            <p><strong>Beamwidth:</strong> ${bw.toFixed(0)}°</p>
+        `;
+    };
+
+    document.getElementById("dom-compute").addEventListener("click", compute);
+    compute();
+}
