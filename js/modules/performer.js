@@ -1,219 +1,199 @@
-/* ---------------------------------------------------------
-   Antenna Workbench — Performer
-   Pattern & Performance Explorer
-   Now NVIS-aware with reflector-based shaping
---------------------------------------------------------- */
+// /HF-Workbench/js/modules/performer.js
+// Full Performer Vertical Designer with automatic plots (Elevation, Azimuth, Gain, SWR, ERP)
 
-import { round } from "../utils.js";
-import { infoBox, warnBox } from "../dom.js";
-import { log } from "../log.js";
+import { computeBoostEngine } from "../boost-engine.js";
+import { PlotEngine } from "../plot-engine.js";
 
-function $(root, sel) { return root.querySelector(sel); }
+export function loadPerformerDesigner() {
+    const container = document.querySelector("#content");
+    if (!container) return;
 
-/* ---------------------------------------------------------
-   PATTERN GENERATION
---------------------------------------------------------- */
-function generateElevationPattern(toaDeg, gainDB) {
-    const pts = [];
-    for (let deg = 0; deg <= 90; deg += 1) {
-        const rel = Math.exp(-Math.pow((deg - toaDeg) / 18, 2));
-        const g = gainDB * rel;
-        pts.push({ angle: deg, gain: g });
-    }
-    return pts;
-}
+    container.innerHTML = `
+        <section class="performer-wrapper">
+            <h2>Performer Vertical Designer</h2>
 
-function generateAzimuthPattern(gainDB, fbDB, fsDB) {
-    const pts = [];
-    for (let deg = 0; deg < 360; deg += 2) {
-        let rel = Math.cos((deg * Math.PI) / 180);
-        rel = Math.abs(rel);
-        let g = gainDB * rel;
+            <div class="performer-layout">
+                <!-- INPUT COLUMN -->
+                <div class="performer-column performer-inputs">
+                    <h3>Inputs</h3>
 
-        if (deg > 120 && deg < 240) g -= fbDB * 0.1;
-        if (deg > 60 && deg < 120) g -= fsDB * 0.05;
+                    <div class="performer-field">
+                        <label for="perf-frequency">Frequency (MHz)</label>
+                        <input type="number" id="perf-frequency" min="1" max="60" step="0.1" value="14.2">
+                    </div>
 
-        pts.push({ angle: deg, gain: g });
-    }
-    return pts;
-}
+                    <div class="performer-field">
+                        <label for="perf-height">Vertical Height (m)</label>
+                        <input type="number" id="perf-height" min="1" max="30" step="0.1" value="10">
+                    </div>
 
-/* NVIS elevation model */
-function generateNVISPattern(toaDeg, nvisBoostDB, dxLossDB) {
-    const pts = [];
-    for (let deg = 0; deg <= 90; deg += 1) {
-        const center = 85 - toaDeg * 0.2;
-        const rel = Math.exp(-Math.pow((deg - center) / 12, 2));
-        let g = nvisBoostDB * rel;
+                    <div class="performer-field">
+                        <label for="perf-radials">Radial Count</label>
+                        <input type="number" id="perf-radials" min="0" max="120" step="1" value="32">
+                    </div>
 
-        if (deg < 30) g -= dxLossDB * (1 - deg / 30);
+                    <div class="performer-field">
+                        <label for="perf-radial-length">Radial Length (m)</label>
+                        <input type="number" id="perf-radial-length" min="1" max="40" step="0.1" value="10">
+                    </div>
 
-        pts.push({ angle: deg, gain: g });
-    }
-    return pts;
-}
+                    <div class="performer-field">
+                        <label for="perf-mount">Mount Type</label>
+                        <select id="perf-mount">
+                            <option value="ground">Ground Mounted</option>
+                            <option value="elevated">Elevated (≥ 2m)</option>
+                        </select>
+                    </div>
 
-/* ---------------------------------------------------------
-   RENDERING
---------------------------------------------------------- */
-function renderPatternCanvas(canvas, pattern, label) {
-    const ctx = canvas.getContext("2d");
-    const W = canvas.width;
-    const H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
+                    <div class="performer-field">
+                        <label for="perf-time">Time of Day</label>
+                        <select id="perf-time">
+                            <option value="day">Day</option>
+                            <option value="night">Night</option>
+                            <option value="dawn">Dawn</option>
+                            <option value="dusk">Dusk</option>
+                        </select>
+                    </div>
 
-    const cx = W / 2;
-    const cy = H / 2;
-    const maxR = Math.min(W, H) * 0.45;
+                    <div class="performer-field performer-checkbox">
+                        <label>
+                            <input type="checkbox" id="perf-seaside">
+                            Near Seaside (≤ 1λ from shoreline)
+                        </label>
+                    </div>
 
-    const maxGain = Math.max(...pattern.map(p => p.gain || 0), 0.1);
+                    <fieldset class="performer-group">
+                        <legend>Loading Coil</legend>
+                        <div class="performer-field performer-checkbox">
+                            <label>
+                                <input type="checkbox" id="perf-coil-enabled">
+                                Enable Loading Coil
+                            </label>
+                        </div>
+                        <div class="performer-field">
+                            <label for="perf-coil-position">Coil Position</label>
+                            <select id="perf-coil-position">
+                                <option value="base">Base</option>
+                                <option value="mid">Mid</option>
+                                <option value="top">Top</option>
+                            </select>
+                        </div>
+                    </fieldset>
 
-    ctx.strokeStyle = "#888";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
-    ctx.stroke();
+                    <fieldset class="performer-group">
+                        <legend>Capacitance Hat</legend>
+                        <div class="performer-field performer-checkbox">
+                            <label>
+                                <input type="checkbox" id="perf-cap-enabled">
+                                Enable Capacitance Hat
+                            </label>
+                        </div>
+                        <div class="performer-field">
+                            <label for="perf-cap-size">Hat Size</label>
+                            <select id="perf-cap-size">
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                    </fieldset>
 
-    ctx.strokeStyle = "#00aaff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
+                    <button id="perf-compute" class="performer-button">Compute Performer Vertical</button>
+                </div>
 
-    pattern.forEach((p, i) => {
-        const r = (p.gain / maxGain) * maxR;
-        const ang = (p.angle * Math.PI) / 180;
-        const x = cx + r * Math.cos(ang);
-        const y = cy - r * Math.sin(ang);
+                <!-- RESULTS COLUMN -->
+                <div class="performer-column performer-results">
+                    <h3>Results</h3>
+                    <table class="performer-results-table">
+                        <thead>
+                            <tr><th>Metric</th><th>Value</th></tr>
+                        </thead>
+                        <tbody id="perf-results-body">
+                            <tr><td>DX Boost</td><td>—</td></tr>
+                            <tr><td>NVIS Boost</td><td>—</td></tr>
+                            <tr><td>TOA Shift</td><td>—</td></tr>
+                            <tr><td>Efficiency</td><td>—</td></tr>
+                            <tr><td>F/B</td><td>—</td></tr>
+                            <tr><td>F/S</td><td>—</td></tr>
+                            <tr><td>Height Fraction</td><td>—</td></tr>
+                            <tr><td>Effective Height Fraction</td><td>—</td></tr>
+                        </tbody>
+                    </table>
 
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-
-    ctx.closePath();
-    ctx.stroke();
-
-    ctx.fillStyle = "#fff";
-    ctx.font = "14px sans-serif";
-    ctx.fillText(label, 10, 20);
-}
-
-/* ---------------------------------------------------------
-   SUMMARY
---------------------------------------------------------- */
-function buildSummary(data) {
-    const lines = [];
-
-    lines.push(`<strong>Antenna:</strong> ${data.name}`);
-    lines.push(`<strong>Design frequency:</strong> ${round(data.freqMHz,2)} MHz`);
-    lines.push(`<strong>Forward gain:</strong> ${round(data.gainDB,1)} dBi`);
-    lines.push(`<strong>F/B ratio:</strong> ${round(data.fbDB,1)} dB`);
-    lines.push(`<strong>F/S ratio:</strong> ${round(data.fsDB,1)} dB`);
-    lines.push(`<strong>Takeoff angle:</strong> ${round(data.toaDeg,1)}°`);
-    lines.push(`<strong>Height:</strong> ${round(data.heightM,2)} m`);
-
-    if (data.nvisMode) {
-        lines.push(`<strong>NVIS mode:</strong> enabled`);
-        lines.push(`<strong>NVIS gain boost:</strong> ${round(data.nvisBoostDB,1)} dB`);
-        lines.push(`<strong>DX suppression:</strong> ${round(data.dxLossDB,1)} dB`);
-    } else {
-        lines.push(`<strong>NVIS mode:</strong> disabled`);
-    }
-
-    return `
-        <div class="poster-preview">
-            ${lines.map(l => `<p>${l}</p>`).join("")}
-            <p style="margin-top:10px;font-size:13px;color:#aaa;">
-                Performer visualizes approximate radiation patterns for quick comparison
-                and performance intuition across antenna types, including NVIS behavior.
-            </p>
-        </div>
+                    <h3>Plots</h3>
+                    <div id="plot-elevation" class="performer-plot"></div>
+                    <div id="plot-azimuth" class="performer-plot"></div>
+                    <div id="plot-gain" class="performer-plot"></div>
+                    <div id="plot-swr" class="performer-plot"></div>
+                    <div id="plot-erp" class="performer-plot"></div>
+                </div>
+            </div>
+        </section>
     `;
+
+    const btn = document.querySelector("#perf-compute");
+    if (!btn) return;
+
+    btn.addEventListener("click", () => {
+        const frequencyMHz = parseFloat(document.querySelector("#perf-frequency").value) || 14.2;
+        const heightMeters = parseFloat(document.querySelector("#perf-height").value) || 10;
+        const radialCount = parseInt(document.querySelector("#perf-radials").value) || 32;
+        const radialLength = parseFloat(document.querySelector("#perf-radial-length").value) || 10;
+        const mountType = document.querySelector("#perf-mount").value;
+
+        const timeOfDay = document.querySelector("#perf-time").value;
+        const seaside = document.querySelector("#perf-seaside").checked;
+
+        const coilEnabled = document.querySelector("#perf-coil-enabled").checked;
+        const coilPosition = document.querySelector("#perf-coil-position").value;
+
+        const capEnabled = document.querySelector("#perf-cap-enabled").checked;
+        const capSize = document.querySelector("#perf-cap-size").value;
+
+        const boost = computeBoostEngine({
+            frequencyMHz,
+            heightMeters,
+            reflectorSpacingMeters: 0,
+            directorSpacingMeters: 0,
+            foldoverAngleDeg: 0,
+            loadingCoil: { enabled: coilEnabled, position: coilPosition },
+            capHat: { enabled: capEnabled, size: capSize },
+            linearLoading: { enabled: false, style: "folded" },
+            environment: { timeOfDay, seaside }
+        });
+
+        const tbody = document.querySelector("#perf-results-body");
+        tbody.innerHTML = `
+            <tr><td>DX Boost</td><td>${boost.dxBoost.toFixed(1)} dB</td></tr>
+            <tr><td>NVIS Boost</td><td>${boost.nvisBoost.toFixed(1)} dB</td></tr>
+            <tr><td>TOA Shift</td><td>${boost.toaShiftDeg.toFixed(1)}°</td></tr>
+            <tr><td>Efficiency</td><td>${boost.efficiency.toFixed(2)}</td></tr>
+            <tr><td>F/B</td><td>${boost.fb.toFixed(1)} dB</td></tr>
+            <tr><td>F/S</td><td>${boost.fs.toFixed(1)} dB</td></tr>
+            <tr><td>Height Fraction</td><td>${boost.heightFraction.toFixed(3)} λ</td></tr>
+            <tr><td>Effective Height Fraction</td><td>${boost.effectiveHeightFraction.toFixed(3)} λ</td></tr>
+        `;
+
+        // Dummy antennaData for now — real modeling comes later
+        const antennaData = {
+            elevationAngles: [...Array(91).keys()],
+            elevationGain: [...Array(91).keys()].map(a => Math.sin(a * Math.PI / 180) * 5.5),
+
+            azimuthAngles: [...Array(361).keys()],
+            azimuthGain: [...Array(361).keys()].map(a => 3 + Math.cos(a * Math.PI / 180) * 2.2),
+
+            freqSweep: [frequencyMHz - 0.2, frequencyMHz, frequencyMHz + 0.2],
+            gainSweep: [3, 4, 3],
+            swrSweep: [1.9, 1.3, 2.0],
+            erpSweep: [110, 140, 115]
+        };
+
+        PlotEngine.renderAll(antennaData, boost);
+    });
 }
 
-/* ---------------------------------------------------------
-   VALIDATION
---------------------------------------------------------- */
-function validateInputs(freqStr, gainStr, fbStr, fsStr, toaStr, heightStr) {
-    const errors = [];
-
-    if (!freqStr) errors.push("Frequency is required.");
-    if (!gainStr) errors.push("Gain is required.");
-    if (!fbStr) errors.push("F/B ratio is required.");
-    if (!fsStr) errors.push("F/S ratio is required.");
-    if (!toaStr) errors.push("TOA is required.");
-    if (!heightStr) errors.push("Height is required.");
-
-    return errors;
-}
-
-/* ---------------------------------------------------------
-   COMPUTE
---------------------------------------------------------- */
-function handleCompute(root) {
-    const name = $(root, "#perf-name").value;
-    const freqStr = $(root, "#perf-freq").value;
-    const gainStr = $(root, "#perf-gain").value;
-    const fbStr = $(root, "#perf-fb").value;
-    const fsStr = $(root, "#perf-fs").value;
-    const toaStr = $(root, "#perf-toa").value;
-    const heightStr = $(root, "#perf-height").value;
-
-    const nvisMode = $(root, "#perf-nvis-mode")?.value === "yes";
-    const nvisBoostStr = $(root, "#perf-nvis-boost")?.value || "0";
-    const dxLossStr = $(root, "#perf-nvis-dxloss")?.value || "0";
-
-    const summaryHost = $(root, "#perf-summary");
-    const elevCanvas = $(root, "#perf-elev");
-    const azCanvas = $(root, "#perf-az");
-
-    const errors = validateInputs(freqStr, gainStr, fbStr, fsStr, toaStr, heightStr);
-    if (errors.length > 0) {
-        summaryHost.innerHTML = "";
-        summaryHost.appendChild(warnBox(errors.join("<br>")));
-        return;
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.location.hash === "#performer") {
+        loadPerformerDesigner();
     }
-
-    const data = {
-        name,
-        freqMHz: Number(freqStr),
-        gainDB: Number(gainStr),
-        fbDB: Number(fbStr),
-        fsDB: Number(fsStr),
-        toaDeg: Number(toaStr),
-        heightM: Number(heightStr),
-        nvisMode,
-        nvisBoostDB: Number(nvisBoostStr),
-        dxLossDB: Number(dxLossStr)
-    };
-
-    let elevPattern;
-    if (nvisMode) {
-        elevPattern = generateNVISPattern(data.toaDeg, data.nvisBoostDB || data.gainDB, data.dxLossDB);
-    } else {
-        elevPattern = generateElevationPattern(data.toaDeg, data.gainDB);
-    }
-    const azPattern = generateAzimuthPattern(data.gainDB, data.fbDB, data.fsDB);
-
-    renderPatternCanvas(elevCanvas, elevPattern, nvisMode ? "Elevation (NVIS)" : "Elevation");
-    renderPatternCanvas(azCanvas, azPattern, "Azimuth");
-
-    summaryHost.innerHTML = "";
-    summaryHost.appendChild(infoBox(buildSummary(data)));
-
-    log("performer", "Computed pattern visualization", data);
-}
-
-/* ---------------------------------------------------------
-   ENTRY
---------------------------------------------------------- */
-export default function initPerformer(root) {
-    const btn = $(root, "#perf-compute");
-    if (btn) btn.addEventListener("click", () => handleCompute(root));
-
-    const summaryHost = $(root, "#perf-summary");
-    if (summaryHost) {
-        summaryHost.innerHTML =
-            "Enter antenna parameters (and optional NVIS parameters), then click <strong>Compute Pattern</strong>.";
-    }
-
-    log("performer", "Module initialized");
-}
+});
