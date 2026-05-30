@@ -1,9 +1,5 @@
 // /HF-Workbench/js/workbench-loader.js
-// Loader + Router matching your current HTML structure
 
-// ------------------------------------------------------------
-// ROUTER
-// ------------------------------------------------------------
 function loadRoute() {
     const hash = window.location.hash || "#home";
 
@@ -22,6 +18,9 @@ function loadRoute() {
             break;
 
         case "#vertical-dx":
+            import("./modules/vertical-dx.js").then(m => m.loadVerticalDXDesigner());
+            break;
+
         case "#vertical-nvis":
         case "#performer":
         case "#dominator":
@@ -40,37 +39,27 @@ function loadRoute() {
     }
 }
 
-// ------------------------------------------------------------
-// DROPDOWN WIRING (matches your HTML exactly)
-// ------------------------------------------------------------
 function wireDropdowns() {
     const dropdownButtons = document.querySelectorAll(".dropdown-btn");
 
     dropdownButtons.forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
-
             const content = btn.nextElementSibling;
 
-            // Close all other dropdowns
             document.querySelectorAll(".dropdown-content").forEach(dc => {
                 if (dc !== content) dc.classList.remove("open");
             });
 
-            // Toggle this one
             content.classList.toggle("open");
         });
     });
 
-    // Close dropdowns when clicking outside
     document.addEventListener("click", () => {
         document.querySelectorAll(".dropdown-content").forEach(dc => dc.classList.remove("open"));
     });
 }
 
-// ------------------------------------------------------------
-// INITIALIZE
-// ------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", () => {
     wireDropdowns();
     loadRoute();
