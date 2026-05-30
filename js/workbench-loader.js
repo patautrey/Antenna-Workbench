@@ -1,5 +1,5 @@
 // /HF-Workbench/js/workbench-loader.js
-// Master loader + router for HF Workbench
+// Loader + Router matching your current HTML structure
 
 // ------------------------------------------------------------
 // ROUTER
@@ -10,23 +10,25 @@ function loadRoute() {
     switch (hash) {
 
         case "#doublet":
-            import("./modules/doublet.js").then(mod => mod.loadDoubletDesigner());
+            import("./modules/doublet.js").then(m => m.loadDoubletDesigner());
             break;
 
         case "#loop":
-            import("./modules/loop.js").then(mod => mod.loadLoopDesigner());
+            import("./modules/loop.js").then(m => m.loadLoopDesigner());
             break;
 
         case "#skyloop":
-            import("./modules/skyloop.js").then(mod => mod.loadSkyloopDesigner());
+            import("./modules/skyloop.js").then(m => m.loadSkyloopDesigner());
             break;
 
+        case "#vertical-dx":
+        case "#vertical-nvis":
+        case "#performer":
+        case "#dominator":
         case "#verticals":
-            import("./modules/verticals.js").then(mod => mod.loadVerticalsDesigner());
+            import("./modules/verticals.js").then(m => m.loadVerticalsDesigner());
             break;
 
-        // Home screen
-        case "#home":
         default:
             document.querySelector("#content").innerHTML = `
                 <section class="home">
@@ -39,41 +41,39 @@ function loadRoute() {
 }
 
 // ------------------------------------------------------------
-// MENU WIRING
+// DROPDOWN WIRING (matches your HTML exactly)
 // ------------------------------------------------------------
-function wireMenus() {
-    const helpBtn = document.getElementById("menu-help");
-    const vertBtn = document.getElementById("menu-verticals");
+function wireDropdowns() {
+    const dropdownButtons = document.querySelectorAll(".dropdown-btn");
 
-    const helpMenu = document.getElementById("dropdown-help");
-    const vertMenu = document.getElementById("dropdown-verticals");
+    dropdownButtons.forEach(btn => {
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
 
-    helpBtn.addEventListener("click", () => {
-        helpMenu.classList.toggle("open");
-        vertMenu.classList.remove("open");
+            const content = btn.nextElementSibling;
+
+            // Close all other dropdowns
+            document.querySelectorAll(".dropdown-content").forEach(dc => {
+                if (dc !== content) dc.classList.remove("open");
+            });
+
+            // Toggle this one
+            content.classList.toggle("open");
+        });
     });
 
-    vertBtn.addEventListener("click", () => {
-        vertMenu.classList.toggle("open");
-        helpMenu.classList.remove("open");
-    });
-
-    // Close menus when clicking outside
-    document.addEventListener("click", e => {
-        if (!helpBtn.contains(e.target) && !helpMenu.contains(e.target)) {
-            helpMenu.classList.remove("open");
-        }
-        if (!vertBtn.contains(e.target) && !vertMenu.contains(e.target)) {
-            vertMenu.classList.remove("open");
-        }
+    // Close dropdowns when clicking outside
+    document.addEventListener("click", () => {
+        document.querySelectorAll(".dropdown-content").forEach(dc => dc.classList.remove("open"));
     });
 }
 
 // ------------------------------------------------------------
 // INITIALIZE
 // ------------------------------------------------------------
-window.addEventListener("hashchange", loadRoute);
 window.addEventListener("DOMContentLoaded", () => {
-    wireMenus();
+    wireDropdowns();
     loadRoute();
 });
+
+window.addEventListener("hashchange", loadRoute);
