@@ -1,59 +1,85 @@
-// /HF-Workbench/js/workbench-loader.js
-// Master loader + router for HF Workbench
-// Matches your current HTML and your actual module filenames
+// ------------------------------------------------------------
+// HF Workbench — Full Loader (No Patching Version)
+// ------------------------------------------------------------
 
-// ------------------------------------------------------------
-// ROUTER
-// ------------------------------------------------------------
 function loadRoute() {
     const hash = window.location.hash || "#home";
+    const root = document.querySelector("#content");
 
     switch (hash) {
 
-        // Core modules (match your actual filenames)
-        case "#doublet":
-            import("./modules/doublet-designer.js").then(m => m.loadDoubletDesigner());
-            break;
+        // ------------------------------------------------------------
+        // DOUBLEt DESIGNER — FULL UI + MODULE INIT
+        // ------------------------------------------------------------
+        case "#doublet": {
+            root.innerHTML = `
+                <section class="tool">
+                    <h2>Doublet Designer</h2>
 
-        case "#loop":
-            import("./modules/loop-designer.js").then(m => m.loadLoopDesigner());
-            break;
+                    <label>Frequency (MHz)
+                        <input id="dbl-freq" type="number" step="0.01">
+                    </label>
 
-        case "#skyloop":
-            import("./modules/skyloop-designer.js").then(m => m.loadSkyloopDesigner());
-            break;
+                    <label>Height (m)
+                        <input id="dbl-height" type="number" step="0.01">
+                    </label>
 
-        // Vertical family (match your actual filenames)
-        case "#vertical-dx":
-            import("./modules/vertical-dx.js").then(m => m.loadVerticalDXDesigner());
-            break;
+                    <label>Total Length (m)
+                        <input id="dbl-length" type="number" step="0.01">
+                    </label>
 
-        case "#vertical-nvis":
-            import("./modules/vertical-nvis-designer.js").then(m => m.loadVerticalNVISDesigner());
-            break;
+                    <label>NVIS Reflector?
+                        <select id="dbl-refl-enabled">
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
+                        </select>
+                    </label>
 
-        case "#performer":
-            import("./modules/performer.js").then(m => m.loadPerformerVertical());
-            break;
+                    <div class="refl-block">
+                        <label>Reflector Wires
+                            <input id="dbl-refl-num" type="number">
+                        </label>
 
-        case "#dominator":
-            import("./modules/dominator.js").then(m => m.loadDominatorArray());
-            break;
+                        <label>Spacing (m)
+                            <input id="dbl-refl-spacing" type="number" step="0.01">
+                        </label>
 
-        // Default home screen
-        default:
-            document.querySelector("#content").innerHTML = `
+                        <label>Offset (m)
+                            <input id="dbl-refl-offset" type="number" step="0.01">
+                        </label>
+
+                        <label>Reflector Height (m)
+                            <input id="dbl-refl-height" type="number" step="0.01">
+                        </label>
+                    </div>
+
+                    <button id="dbl-compute">Compute Doublet</button>
+
+                    <div id="dbl-summary" class="summary"></div>
+                </section>
+            `;
+
+            import("./modules/doublet-designer.js").then(m => m.default(root));
+            break;
+        }
+
+        // ------------------------------------------------------------
+        // HOME SCREEN
+        // ------------------------------------------------------------
+        default: {
+            root.innerHTML = `
                 <section class="home">
                     <h1>HF Workbench</h1>
                     <p>Select a tool from the menu.</p>
                 </section>
             `;
             break;
+        }
     }
 }
 
 // ------------------------------------------------------------
-// DROPDOWN WIRING — matches your HTML exactly
+// DROPDOWN WIRING
 // ------------------------------------------------------------
 function wireDropdowns() {
     const dropdownButtons = document.querySelectorAll(".dropdown-btn");
@@ -61,20 +87,16 @@ function wireDropdowns() {
     dropdownButtons.forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
-
             const content = btn.nextElementSibling;
 
-            // Close all other dropdowns
             document.querySelectorAll(".dropdown-content").forEach(dc => {
                 if (dc !== content) dc.classList.remove("open");
             });
 
-            // Toggle this one
             content.classList.toggle("open");
         });
     });
 
-    // Close dropdowns when clicking outside
     document.addEventListener("click", () => {
         document.querySelectorAll(".dropdown-content").forEach(dc => dc.classList.remove("open"));
     });
