@@ -1,7 +1,7 @@
 // /HF-Workbench/js/modules/skyloop.js
-// Skyloop Designer module with ModelingEngine + PlotEngine
+// Skyloop Designer with BoostEngine + PlotEngine
 
-import { ModelingEngine } from "../modeling-engine.js";
+import { BoostEngine } from "../boost-engine.js";
 import { PlotEngine } from "../plot-engine.js";
 
 export function loadSkyloopDesigner() {
@@ -48,14 +48,11 @@ export function loadSkyloopDesigner() {
         </section>
     `;
 
-    const btn = document.getElementById("sky-compute");
-
-    btn.addEventListener("click", async () => {
+    const compute = async () => {
         const freq = parseFloat(document.getElementById("sky-freq").value);
         const perim = parseFloat(document.getElementById("sky-perim").value);
         const height = parseFloat(document.getElementById("sky-height").value);
 
-        // Approximate radius for NEC geometry
         const radius = perim / (2 * Math.PI);
 
         const geometry = {
@@ -66,15 +63,17 @@ export function loadSkyloopDesigner() {
             heightMeters: height
         };
 
-        const result = await ModelingEngine.solve(geometry, {});
+        const result = await BoostEngine.solve(geometry, {});
 
         PlotEngine.renderElevation("sky-elev", result.elevation);
         PlotEngine.renderAzimuth("sky-az", result.azimuth);
         PlotEngine.renderSWR("sky-swr", result.swr);
         PlotEngine.renderGain("sky-gain", result.gain);
         PlotEngine.renderERP("sky-erp", result.erp);
-    });
+    };
+
+    document.getElementById("sky-compute").addEventListener("click", compute);
 
     // Auto-run once on load
-    btn.click();
+    compute();
 }
