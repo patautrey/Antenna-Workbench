@@ -1,257 +1,201 @@
-/* ---------------------------------------------------------
-   Antenna Workbench — Dominator
-   Antenna Optimizer & Recommender
-   Now NVIS-aware and reflector-aware
---------------------------------------------------------- */
+// /HF-Workbench/js/modules/dominator.js
+// Full Dominator Array Designer with automatic plots (Elevation, Azimuth, Gain, SWR, ERP)
 
-import { round } from "../utils.js";
-import { infoBox, warnBox } from "../dom.js";
-import { log } from "../log.js";
+import { computeBoostEngine } from "../boost-engine.js";
+import { PlotEngine } from "../plot-engine.js";
 
-function $(root, sel) { return root.querySelector(sel); }
+export function loadDominatorDesigner() {
+    const container = document.querySelector("#content");
+    if (!container) return;
 
-/* ---------------------------------------------------------
-   NVIS SCORING
---------------------------------------------------------- */
-function nvisScore(params, antenna) {
-    let score = 0;
+    container.innerHTML = `
+        <section class="dom-wrapper">
+            <h2>Dominator Vertical Array Designer</h2>
 
-    if (params.goal !== "nvis") return 0;
+            <div class="dom-layout">
+                <!-- INPUT COLUMN -->
+                <div class="dom-column dom-inputs">
+                    <h3>Inputs</h3>
 
-    if (params.heightFrac < 0.05) score -= 10;
-    else if (params.heightFrac < 0.15) score += 20;
-    else if (params.heightFrac < 0.25) score += 10;
+                    <div class="dom-field">
+                        <label for="dom-frequency">Frequency (MHz)</label>
+                        <input type="number" id="dom-frequency" min="1" max="60" step="0.1" value="14.2">
+                    </div>
 
-    if (params.reflectorWires > 0) {
-        score += params.reflectorWires * 4;
-        if (params.reflectorHeightFrac < 0.15) score += 5;
-    }
+                    <div class="dom-field">
+                        <label for="dom-height">Element Height (m)</label>
+                        <input type="number" id="dom-height" min="1" max="30" step="0.1" value="10">
+                    </div>
 
-    if (antenna.tags.includes("nvis")) score += 20;
-    if (antenna.tags.includes("loop")) score += 10;
-    if (antenna.tags.includes("vertical")) score += 5;
+                    <div class="dom-field">
+                        <label for="dom-elements">Number of Elements</label>
+                        <input type="number" id="dom-elements" min="1" max="8" step="1" value="3">
+                    </div>
 
-    return score;
-}
+                    <div class="dom-field">
+                        <label for="dom-spacing">Element Spacing (m)</label>
+                        <input type="number" id="dom-spacing" min="0" max="40" step="0.1" value="5">
+                    </div>
 
-/* ---------------------------------------------------------
-   ANTENNA KNOWLEDGE BASE
---------------------------------------------------------- */
-const ANTENNAS = [
-    {
-        name: "Dipole / Doublet",
-        tags: ["balanced", "general", "nvis", "low-cost"],
-        score: params => {
-            let s = 60;
-            if (params.goal === "nvis") s += 20;
-            if (params.height < 10) s += 10;
-            if (params.span < 20) s -= 10;
-            s += nvisScore(params, { tags: ["nvis"] });
-            return s;
-        }
-    },
-    {
-        name: "Inverted-V",
-        tags: ["balanced", "compact", "general"],
-        score: params => {
-            let s = 65;
-            if (params.span < 20) s += 15;
-            if (params.goal === "dx") s += 5;
-            s += nvisScore(params, { tags: [] });
-            return s;
-        }
-    },
-    {
-        name: "EFHW",
-        tags: ["multiband", "simple", "end-fed"],
-        score: params => {
-            let s = 70;
-            if (params.goal === "multiband") s += 20;
-            if (params.noise === "noisy") s -= 10;
-            s += nvisScore(params, { tags: [] });
-            return s;
-        }
-    },
-    {
-        name: "Vertical",
-        tags: ["dx", "low-angle", "vertical"],
-        score: params => {
-            let s = 75;
-            if (params.goal === "dx") s += 20;
-            if (params.ground === "poor") s -= 15;
-            s += nvisScore(params, { tags: ["vertical"] });
-            return s;
-        }
-    },
-    {
-        name: "4-Square",
-        tags: ["dx", "array", "high-performance", "vertical"],
-        score: params => {
-            let s = 85;
-            if (params.goal === "dx") s += 25;
-            if (params.space < 20) s -= 40;
-            s += nvisScore(params, { tags: ["vertical"] });
-            return s;
-        }
-    },
-    {
-        name: "Loop / Skyloop",
-        tags: ["quiet", "balanced", "multiband", "nvis", "loop"],
-        score: params => {
-            let s = 80;
-            if (params.noise === "noisy") s += 20;
-            if (params.goal === "nvis") s += 10;
-            if (params.height < 8) s -= 10;
-            s += nvisScore(params, { tags: ["nvis", "loop"] });
-            return s;
-        }
-    },
-    {
-        name: "Hexbeam",
-        tags: ["dx", "beam", "rotatable"],
-        score: params => {
-            let s = 90;
-            if (params.goal === "dx") s += 20;
-            if (params.height < 10) s -= 20;
-            s += nvisScore(params, { tags: [] });
-            return s;
-        }
-    },
-    {
-        name: "Yagi",
-        tags: ["dx", "beam", "high-performance"],
-        score: params => {
-            let s = 95;
-            if (params.goal === "dx") s += 25;
-            if (params.height < 12) s -= 25;
-            if (params.space < 15) s -= 20;
-            s += nvisScore(params, { tags: [] });
-            return s;
-        }
-    },
-    {
-        name: "Vertical NVIS",
-        tags: ["vertical", "nvis"],
-        score: params => {
-            let s = 70;
-            if (params.goal === "nvis") s += 15;
-            if (params.ground === "good") s += 5;
-            s += nvisScore(params, { tags: ["vertical", "nvis"] });
-            return s;
-        }
-    }
-];
+                    <div class="dom-field">
+                        <label for="dom-phasing">Phasing</label>
+                        <select id="dom-phasing">
+                            <option value="broadside">Broadside</option>
+                            <option value="endfire">Endfire</option>
+                            <option value="cardioid">Cardioid</option>
+                            <option value="supergain">Supergain</option>
+                        </select>
+                    </div>
 
-/* ---------------------------------------------------------
-   SCORING ENGINE
---------------------------------------------------------- */
-function evaluate(params) {
-    return ANTENNAS.map(a => {
-        return {
-            name: a.name,
-            tags: a.tags,
-            score: a.score(params)
-        };
-    }).sort((a, b) => b.score - a.score);
-}
+                    <div class="dom-field">
+                        <label for="dom-time">Time of Day</label>
+                        <select id="dom-time">
+                            <option value="day">Day</option>
+                            <option value="night">Night</option>
+                            <option value="dawn">Dawn</option>
+                            <option value="dusk">Dusk</option>
+                        </select>
+                    </div>
 
-/* ---------------------------------------------------------
-   SUMMARY
---------------------------------------------------------- */
-function buildSummary(params, results) {
-    const top = results[0];
+                    <div class="dom-field dom-checkbox">
+                        <label>
+                            <input type="checkbox" id="dom-seaside">
+                            Near Seaside (≤ 1λ from shoreline)
+                        </label>
+                    </div>
 
-    const lines = [];
+                    <fieldset class="dom-group">
+                        <legend>Loading Coil</legend>
+                        <div class="dom-field dom-checkbox">
+                            <label>
+                                <input type="checkbox" id="dom-coil-enabled">
+                                Enable Loading Coil
+                            </label>
+                        </div>
+                        <div class="dom-field">
+                            <label for="dom-coil-position">Coil Position</label>
+                            <select id="dom-coil-position">
+                                <option value="base">Base</option>
+                                <option value="mid">Mid</option>
+                                <option value="top">Top</option>
+                            </select>
+                        </div>
+                    </fieldset>
 
-    lines.push(`<strong>Goal:</strong> ${params.goal}`);
-    lines.push(`<strong>Height:</strong> ${params.height} m`);
-    lines.push(`<strong>Span:</strong> ${params.span} m`);
-    lines.push(`<strong>Space:</strong> ${params.space} m`);
-    lines.push(`<strong>Ground:</strong> ${params.ground}`);
-    lines.push(`<strong>Noise:</strong> ${params.noise}`);
-    lines.push(`<strong>Reflector wires:</strong> ${params.reflectorWires}`);
-    lines.push(`<hr>`);
-    lines.push(`<strong>Top Recommendation:</strong> ${top.name} (${round(top.score,1)} pts)`);
+                    <fieldset class="dom-group">
+                        <legend>Capacitance Hat</legend>
+                        <div class="dom-field dom-checkbox">
+                            <label>
+                                <input type="checkbox" id="dom-cap-enabled">
+                                Enable Capacitance Hat
+                            </label>
+                        </div>
+                        <div class="dom-field">
+                            <label for="dom-cap-size">Hat Size</label>
+                            <select id="dom-cap-size">
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                    </fieldset>
 
-    const list = results
-        .map(r => `<p>${r.name}: ${round(r.score,1)} pts</p>`)
-        .join("");
+                    <button id="dom-compute" class="dom-button">Compute Dominator Array</button>
+                </div>
 
-    return `
-        <div class="poster-preview">
-            ${lines.map(l => `<p>${l}</p>`).join("")}
-            <p><strong>Ranked List:</strong></p>
-            ${list}
-            <p style="margin-top:10px;font-size:13px;color:#aaa;">
-                Dominator uses heuristic scoring, including NVIS and reflector awareness,
-                to match antennas to goals and site constraints.
-            </p>
-        </div>
+                <!-- RESULTS COLUMN -->
+                <div class="dom-column dom-results">
+                    <h3>Results</h3>
+                    <table class="dom-results-table">
+                        <thead>
+                            <tr><th>Metric</th><th>Value</th></tr>
+                        </thead>
+                        <tbody id="dom-results-body">
+                            <tr><td>DX Boost</td><td>—</td></tr>
+                            <tr><td>NVIS Boost</td><td>—</td></tr>
+                            <tr><td>TOA Shift</td><td>—</td></tr>
+                            <tr><td>Efficiency</td><td>—</td></tr>
+                            <tr><td>F/B</td><td>—</td></tr>
+                            <tr><td>F/S</td><td>—</td></tr>
+                            <tr><td>Height Fraction</td><td>—</td></tr>
+                            <tr><td>Effective Height Fraction</td><td>—</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Plots</h3>
+                    <div id="plot-elevation" class="dom-plot"></div>
+                    <div id="plot-azimuth" class="dom-plot"></div>
+                    <div id="plot-gain" class="dom-plot"></div>
+                    <div id="plot-swr" class="dom-plot"></div>
+                    <div id="plot-erp" class="dom-plot"></div>
+                </div>
+            </div>
+        </section>
     `;
-}
 
-/* ---------------------------------------------------------
-   VALIDATION
---------------------------------------------------------- */
-function validate(params) {
-    const errors = [];
-    if (!params.goal) errors.push("Goal is required.");
-    if (!params.height) errors.push("Height is required.");
-    if (!params.span) errors.push("Span is required.");
-    if (!params.space) errors.push("Space is required.");
-    if (!params.ground) errors.push("Ground quality is required.");
-    if (!params.noise) errors.push("Noise environment is required.");
-    return errors;
-}
+    const btn = document.querySelector("#dom-compute");
+    if (!btn) return;
 
-/* ---------------------------------------------------------
-   COMPUTE
---------------------------------------------------------- */
-function handleCompute(root) {
-    const params = {
-        goal: $(root, "#dom-goal").value,
-        height: Number($(root, "#dom-height").value),
-        span: Number($(root, "#dom-span").value),
-        space: Number($(root, "#dom-space").value),
-        ground: $(root, "#dom-ground").value,
-        noise: $(root, "#dom-noise").value,
-        reflectorWires: Number($(root, "#dom-reflector-wires")?.value || 0),
-        heightFrac: Number($(root, "#dom-height-frac")?.value || 0),
-        reflectorHeightFrac: Number($(root, "#dom-reflector-height-frac")?.value || 0)
-    };
+    btn.addEventListener("click", () => {
+        const frequencyMHz = parseFloat(document.querySelector("#dom-frequency").value) || 14.2;
+        const heightMeters = parseFloat(document.querySelector("#dom-height").value) || 10;
+        const elements = parseInt(document.querySelector("#dom-elements").value) || 3;
+        const spacing = parseFloat(document.querySelector("#dom-spacing").value) || 5;
+        const phasing = document.querySelector("#dom-phasing").value;
 
-    const summaryHost = $(root, "#dom-summary");
+        const timeOfDay = document.querySelector("#dom-time").value;
+        const seaside = document.querySelector("#dom-seaside").checked;
 
-    const errors = validate(params);
-    if (errors.length > 0) {
-        summaryHost.innerHTML = "";
-        summaryHost.appendChild(warnBox(errors.join("<br>")));
-        return;
-    }
+        const coilEnabled = document.querySelector("#dom-coil-enabled").checked;
+        const coilPosition = document.querySelector("#dom-coil-position").value;
 
-    const results = evaluate(params);
+        const capEnabled = document.querySelector("#dom-cap-enabled").checked;
+        const capSize = document.querySelector("#dom-cap-size").value;
 
-    summaryHost.innerHTML = "";
-    summaryHost.appendChild(infoBox(buildSummary(params, results)));
+        const boost = computeBoostEngine({
+            frequencyMHz,
+            heightMeters,
+            reflectorSpacingMeters: spacing,
+            directorSpacingMeters: spacing,
+            foldoverAngleDeg: 0,
+            loadingCoil: { enabled: coilEnabled, position: coilPosition },
+            capHat: { enabled: capEnabled, size: capSize },
+            linearLoading: { enabled: false, style: "folded" },
+            environment: { timeOfDay, seaside }
+        });
 
-    log("dominator", "Computed antenna recommendations", {
-        params,
-        results
+        const tbody = document.querySelector("#dom-results-body");
+        tbody.innerHTML = `
+            <tr><td>DX Boost</td><td>${boost.dxBoost.toFixed(1)} dB</td></tr>
+            <tr><td>NVIS Boost</td><td>${boost.nvisBoost.toFixed(1)} dB</td></tr>
+            <tr><td>TOA Shift</td><td>${boost.toaShiftDeg.toFixed(1)}°</td></tr>
+            <tr><td>Efficiency</td><td>${boost.efficiency.toFixed(2)}</td></tr>
+            <tr><td>F/B</td><td>${boost.fb.toFixed(1)} dB</td></tr>
+            <tr><td>F/S</td><td>${boost.fs.toFixed(1)} dB</td></tr>
+            <tr><td>Height Fraction</td><td>${boost.heightFraction.toFixed(3)} λ</td></tr>
+            <tr><td>Effective Height Fraction</td><td>${boost.effectiveHeightFraction.toFixed(3)} λ</td></tr>
+        `;
+
+        // Dummy antennaData for now — real modeling comes later
+        const antennaData = {
+            elevationAngles: [...Array(91).keys()],
+            elevationGain: [...Array(91).keys()].map(a => Math.sin(a * Math.PI / 180) * (5 + elements * 0.5)),
+
+            azimuthAngles: [...Array(361).keys()],
+            azimuthGain: [...Array(361).keys()].map(a => 3 + Math.cos(a * Math.PI / 180) * (2 + elements * 0.3)),
+
+            freqSweep: [frequencyMHz - 0.2, frequencyMHz, frequencyMHz + 0.2],
+            gainSweep: [3, 4 + elements * 0.5, 3],
+            swrSweep: [2.0, 1.4, 2.1],
+            erpSweep: [100, 140 + elements * 10, 110]
+        };
+
+        PlotEngine.renderAll(antennaData, boost);
     });
 }
 
-/* ---------------------------------------------------------
-   ENTRY
---------------------------------------------------------- */
-export default function initDominator(root) {
-    const btn = $(root, "#dom-compute");
-    if (btn) btn.addEventListener("click", () => handleCompute(root));
-
-    const summaryHost = $(root, "#dom-summary");
-    if (summaryHost) {
-        summaryHost.innerHTML =
-            "Enter your goals, site constraints, and optional NVIS/reflector parameters, then click <strong>Compute Recommendations</strong>.";
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.location.hash === "#dominator") {
+        loadDominatorDesigner();
     }
-
-    log("dominator", "Module initialized");
-}
+});
